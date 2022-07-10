@@ -11,7 +11,7 @@ This is a modified version of the classic break-out game. One player can control
 ### MVP Goals
 - As a player, I should be able to move my paddle using arrow keys or the mouse scroll wheel
 - As a player, I should be able to see the targets (blocks, enemy, projectiles).
-- As a player, I want to be albe to see the current state of the game at all times (lives, points, level).
+- As a player, I want to be able to see the current state of the game at all times (lives, points, level).
 - As a player, I would like to be able to pause the game, and continue where I left off.
 - As a player, I want to be able to bounce my ball off my paddle, the walls and top border of the play field.
 - As a player, I want to be able to control any sounds or music.
