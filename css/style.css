@@ -1,0 +1,41 @@
+body{
+    background: radial-gradient(farthest-corner at 40px 40px, #ccc 0%, #333 100%);
+    display: flex;
+    justify-content: center;
+}
+
+div {
+    text-align: center;
+}
+
+.hidden {
+    display: none;
+}
+
+.justCenter {
+    justify-self: center;
+}
+
+.justLeft {
+    justify-self: flex-start;
+}
+
+.justRight {
+    justify-self: flex-end;
+}
+
+.flexContainer {
+    display: flex;
+    justify-content: space-between;
+}
+
+.flexGrow1 {
+    flex-grow: 1;
+    margin: 5px 10px;
+}
+
+#viewport {
+  border-top:   5px solid white;
+  border-left:  5px solid white;
+  border-right: 5px solid white;
+}

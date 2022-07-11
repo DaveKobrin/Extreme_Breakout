@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/style.css">
+    <title>Extreme Breakout!</title>
+</head>
+<body>
+    <div id="backdrop">
+        <h1>Welcome to Extreme Breakout!</h1>
+        <div id="instructions" class="modal hidden">
+            <h2>Instructions:</h2>
+            <p>To play move the paddle across the bottom of the game window to keep the ball from falling off the bottom of the screen.</p>
+            <p>Earn points by bouncing the ball into the bricks above and the alien invader as well.</p>
+            <p>Be carefull of the stun bombs that the alien shoots down at you, they will prevent you from moving for 2 seconds which could cause you to miss the ball!</p>
+            <p>Also, don't forget to catch any power-ups that you knock loose!</p>
+            <p>Good Luck!</p>
+            <ul id="controls">
+                <li><span>Move Left:</span><span>Left Arrow</span></li>
+                <li><span>Move Right:</span><span>Right Arrow</span></li>
+                <li><span>Launch Ball:</span><span>Space Bar</span></li>
+                <li><span>Pause:</span><span>P</span></li>
+                <li><span>Quit:</span><span>Q</span></li>
+            </ul>
+        </div>
+        <div id="highScores" class="modal hidden">
+            <h2>High Scores</h2>
+            <br>
+            <ul id="scoresUL">
+                <li><span class="initials">DMK</span><span class="scores">312345</span></li>
+            </ul>
+
+        </div>
+        <div id="gameWindow">
+            <section id="statusBar" class="flexContainer">
+                <span class="flexContainer flexGrow1"><span class="justLeft">Score:</span><span class="justRight" id="score">23485</span></span>
+                <span class="flexContainer flexGrow1 justCenter"><span class="justLeft">Level:</span><span class="justRight" id="level">5</span></span>
+                <span class="flexContainer flexGrow1"><span class="justLeft">Lives:</span><span class="justRight" id="score"></span></span>
+            </section>
+            <section>
+                <canvas id="viewport" width="500" height="800"></canvas>
+            </section>
+
+        </div>
+    </div>
+    <script src="js/app.js"></script>
+</body>
+</html>
