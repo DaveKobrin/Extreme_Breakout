@@ -10,19 +10,20 @@
 <body>
     <div id="backdrop">
         <h1>Welcome to Extreme Breakout!</h1>
-        <div id="instructions" class="modal hidden">
+        <div id="instructions" class="modal Hidden">
             <h2>Instructions:</h2>
             <p>To play move the paddle across the bottom of the game window to keep the ball from falling off the bottom of the screen.</p>
             <p>Earn points by bouncing the ball into the bricks above and the alien invader as well.</p>
             <p>Be carefull of the stun bombs that the alien shoots down at you, they will prevent you from moving for 2 seconds which could cause you to miss the ball!</p>
             <p>Also, don't forget to catch any power-ups that you knock loose!</p>
             <p>Good Luck!</p>
-            <ul id="controls">
-                <li><span>Move Left:</span><span>Left Arrow</span></li>
-                <li><span>Move Right:</span><span>Right Arrow</span></li>
-                <li><span>Launch Ball:</span><span>Space Bar</span></li>
-                <li><span>Pause:</span><span>P</span></li>
-                <li><span>Quit:</span><span>Q</span></li>
+            <ul id="controlsUL" width="50%">
+                <li class="flexContainer"><span class="justLeft">Move Left:   </span><span class="justRight">Left Arrow</span></li>
+                <li class="flexContainer"><span class="justLeft">Move Right:  </span><span class="justRight">Right Arrow</span></li>
+                <li class="flexContainer"><span class="justLeft">Launch Ball: </span><span class="justRight">Space Bar</span></li>
+                <li class="flexContainer"><span class="justLeft">Pause:       </span><span class="justRight">P</span></li>
+                <li class="flexContainer"><span class="justLeft">Instructions:</span><span class="justRight">I</span></li>
+                <li class="flexContainer"><span class="justLeft">Quit:        </span><span class="justRight">Q</span></li>
             </ul>
         </div>
         <div id="highScores" class="modal hidden">
