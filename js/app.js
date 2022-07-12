@@ -64,6 +64,28 @@ class Ball extends Circle {
         this.vel.y = velY;
     }
 
+    update() {
+        let newX = this.getPosition().x + this.vel.x;
+        if(newX < this.getRadius()){
+            newX = this.getRadius();
+            this.vel.x *= -1;
+        } else if (newX + this.getRadius() > vp.canvas.width) {
+            newX = vp.canvas.width - this.getRadius();
+            this.vel.x *= -1;
+        }
+        
+        let newY = this.getPosition().y + this.vel.y;
+        if (newY < this.getRadius()) { 
+            newY = this.getRadius();
+            this.vel.y *= -1;
+        }
+
+        this.setPosition(newX, newY);
+
+        if (newY > vp.canvas.height) {
+            //life lost
+        }
+    }
 }
 
 //================================================================
@@ -277,14 +299,14 @@ const game = {
 
         this.gameState.setState('instructions');
 
-        this.entities.push(new Ball(10,50,50));
+        this.entities.push(new Ball(10,50,vp.canvas.height - 30,2,-2));
         this.entities.push(new Brick(60, 100, 80, 30));
         this.entities.push(new Paddle(vp.canvas.width / 2, vp.canvas.height - 20, 120, 20));
     },
 
     update: function() { 
         if (this.gameState.isInstructions()) {
-            if (this.controlKeys.KeyI) {
+            if (this.controlKeys.KeyI || this.controlKeys.KeyP) {
                 this.gameState.setState('gamePlay');
                 paused = false;
             }
