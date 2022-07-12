@@ -64,8 +64,8 @@ class Ball extends Circle {
         this.vel.y = velY;
     }
 
-    update() {
-        let newX = this.getPosition().x + this.vel.x;
+    update(dt) {
+        let newX = this.getPosition().x + this.vel.x * dt;
         if(newX < this.getRadius()){
             newX = this.getRadius();
             this.vel.x *= -1;
@@ -74,7 +74,7 @@ class Ball extends Circle {
             this.vel.x *= -1;
         }
         
-        let newY = this.getPosition().y + this.vel.y;
+        let newY = this.getPosition().y + this.vel.y * dt;
         if (newY < this.getRadius()) { 
             newY = this.getRadius();
             this.vel.y *= -1;
@@ -160,7 +160,7 @@ class Brick extends Rect {
 // Paddle - Player controlable rectangle
 //================================================================
 class Paddle extends Rect {
-    vel = 5;        // movement speed per frame
+    vel = .5;        // movement speed per frame
     normalWidth = 0;
 
     constructor(posX = 0, posY = 0, width = 0, height = 0, color = '#dd1') {
@@ -168,13 +168,13 @@ class Paddle extends Rect {
         this.normalWidth = width;    
     }
 
-    update(keys) {
+    update(dt, keys) {
         if (keys.ArrowLeft) {
-            let newX = this.getPosition().x - this.vel;
+            let newX = this.getPosition().x - this.vel * dt;
             newX = newX > this.getWidth()/2 ? newX : this.getWidth()/2;
             this.setPosition(newX);
         } else if (keys.ArrowRight) {
-            let newX = this.getPosition().x + this.vel;
+            let newX = this.getPosition().x + this.vel * dt;
             newX = newX < vp.canvas.width - this.getWidth()/2 ? newX : vp.canvas.width - this.getWidth()/2;
             this.setPosition(newX);
         }
@@ -193,6 +193,9 @@ let paused = false;
 const game = {
     entities: [],
     bgColor: '#222',
+    lastUpdateTime: 0,
+    level: 1,
+
     controlKeys: {
             ArrowRight: false,
             ArrowLeft:  false,
@@ -296,29 +299,55 @@ const game = {
 
         shouldQuit = false;
         paused = true;
+        this.lastUpdateTime = Date.now();
 
         this.gameState.setState('instructions');
+        this.level = 1;
+        while (this.entities.length > 0)
+            this.entities.pop()
+        this.loadLevel();
+    },
 
-        this.entities.push(new Ball(10,50,vp.canvas.height - 30,2,-2));
-        this.entities.push(new Brick(60, 100, 80, 30));
+    loadLevel: function() {
+        const rowPad = 6;
+        const colPad = 6;
+        const gutterWidth = 20;
+        const brickWidth = (vp.canvas.width - colPad*5 - gutterWidth*2)/6;
+        const brickHeight = 25;
+        let row = 100;
+        const col = gutterWidth + brickWidth/2;
+
+
+        for (let i=0; i<4; i++) {
+            for (let j=0; j<6; j++) {
+                this.entities.push(new Brick(col + brickWidth * j + colPad * j, row + brickHeight * i + rowPad * i, brickWidth, brickHeight));
+            }
+        }
+
+        this.entities.push(new Ball(10,50,vp.canvas.height - 30,.2,-.2));
         this.entities.push(new Paddle(vp.canvas.width / 2, vp.canvas.height - 20, 120, 20));
     },
 
-    update: function() { 
+    update: function(dt) { 
         if (this.gameState.isInstructions()) {
             if (this.controlKeys.KeyI || this.controlKeys.KeyP) {
+                this.controlKeys.KeyI = false;
+                this.controlKeys.KeyP = false;
                 this.gameState.setState('gamePlay');
                 paused = false;
             }
         } else if (this.gameState.isHighScores()) {
             if (this.controlKeys.KeyP) {
+                this.controlKeys.KeyP = false;
                 this.gameState.setState('gamePlay');
+                this.init();
                 paused = false;
                 shouldQuit = false;
             }
         } else {
             if (this.controlKeys.KeyI) {
                 paused = true;
+                this.controlKeys.KeyI = false;
                 this.gameState.setState('instructions');
             }
             if (this.controlKeys.KeyQ) {
@@ -327,12 +356,13 @@ const game = {
                 this.gameState.setState('highScores');
             }
             if (this.controlKeys.KeyP) {
-                paused != paused;
+                this.controlKeys.KeyP = false;
+                paused = !paused;
             }
 
             if (!paused) {
                 for (const ent of game.entities) {
-                    ent.update(this.controlKeys);
+                    ent.update(dt, this.controlKeys);
                 }
             }
         }
@@ -351,9 +381,12 @@ const game = {
     },
     
     loop: function() {
-         
-            game.update()
-            game.draw()
+        let currTime = Date.now();
+        let deltaTime = currTime - this.lastUpdateTime;
+        this.lastUpdateTime = currTime;
+
+        game.update(deltaTime)
+        game.draw()
         
         requestAnimationFrame(game.loop);    // keep game loop running while on page
     },
