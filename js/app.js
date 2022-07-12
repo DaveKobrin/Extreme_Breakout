@@ -145,6 +145,21 @@ class Paddle extends Rect {
         super(posX, posY, width, height, color);
         this.normalWidth = width;    
     }
+
+    update(keys) {
+        if (keys.ArrowLeft) {
+            let newX = this.getPosition().x - this.vel;
+            newX = newX > this.getWidth()/2 ? newX : this.getWidth()/2;
+            this.setPosition(newX);
+        } else if (keys.ArrowRight) {
+            let newX = this.getPosition().x + this.vel;
+            newX = newX < vp.canvas.width - this.getWidth()/2 ? newX : vp.canvas.width - this.getWidth()/2;
+            this.setPosition(newX);
+        }
+        if (keys.Space) {
+
+        }
+    }
 }
 
 //-----------------------------------------------------------------
@@ -169,6 +184,85 @@ const game = {
         instructions:   true,
         highScores:     false,
         gamePlay:       false,
+
+        isInstructions: function() { return this.instructions; },
+        isHighScores: function() { return this.highScores; },
+        isGamePlay: function() { return this.gamePlay; },
+
+        setState: function(state) {
+            switch (state) {
+                case 'instructions':
+                    this.instructions = true;
+                    this.highScores = false;
+                    this.gamePlay = false;
+                    break;
+                case 'highScores':
+                    this.instructions = false;
+                    this.highScores = true;
+                    this.gamePlay = false;
+                    break;
+                case 'gamePlay':
+                    this.instructions = false;
+                    this.highScores = false;
+                    this.gamePlay = true;
+                    break;
+                default:
+                    console.log(`ERROR! trying to switch gameState to ${state}!`);
+                    return;
+            }
+            this.updateDom(state);
+        },
+
+        updateDom: function(state) {
+            let domObj = null;
+            switch (state) {
+                case 'instructions':
+                    domObj = document.querySelector('#instructions');
+                    if (domObj.classList.contains('hidden'))
+                        domObj.classList.remove('hidden');
+                    
+                    domObj = document.querySelector('#highScores');
+                    if (!domObj.classList.contains('hidden'))
+                        domObj.classList.add('hidden');
+
+                    domObj = document.querySelector('#gameWindow');
+                    if (!domObj.classList.contains('hidden'))
+                        domObj.classList.add('hidden');
+                    break;
+
+                case 'highScores':
+                    domObj = document.querySelector('#highScores');
+                    if (domObj.classList.contains('hidden'))
+                        domObj.classList.remove('hidden');
+                    
+                    domObj = document.querySelector('#instructions');
+                    if (!domObj.classList.contains('hidden'))
+                        domObj.classList.add('hidden');
+
+                    domObj = document.querySelector('#gameWindow');
+                    if (!domObj.classList.contains('hidden'))
+                        domObj.classList.add('hidden');
+                    break;
+                    
+                case 'gamePlay':
+                    domObj = document.querySelector('#gameWindow');
+                    if (domObj.classList.contains('hidden'))
+                        domObj.classList.remove('hidden');
+                    
+                    domObj = document.querySelector('#instructions');
+                    if (!domObj.classList.contains('hidden'))
+                        domObj.classList.add('hidden');
+
+                    domObj = document.querySelector('#highScores');
+                    if (!domObj.classList.contains('hidden'))
+                        domObj.classList.add('hidden');
+                    break;
+                    
+                default:
+                    console.log(`ERROR! trying to updateDom to ${state}!`);
+                    return;
+            }
+        }
     },
 
     init: function() {
@@ -179,7 +273,9 @@ const game = {
         document.querySelector('body').addEventListener('keyup', (e) => { game.keyUpEvent(e); });
 
         shouldQuit = false;
-        paused = false;
+        paused = true;
+
+        this.gameState.setState('instructions');
 
         this.entities.push(new Ball(10,50,50));
         this.entities.push(new Brick(60, 100, 80, 30));
@@ -187,27 +283,56 @@ const game = {
     },
 
     update: function() { 
-             
-        for (const ent of game.entities) {
-            ent.update()
+        if (this.gameState.isInstructions()) {
+            if (this.controlKeys.KeyI) {
+                this.gameState.setState('gamePlay');
+                paused = false;
+            }
+        } else if (this.gameState.isHighScores()) {
+            if (this.controlKeys.KeyP) {
+                this.gameState.setState('gamePlay');
+                paused = false;
+                shouldQuit = false;
+            }
+        } else {
+            if (this.controlKeys.KeyI) {
+                paused = true;
+                this.gameState.setState('instructions');
+            }
+            if (this.controlKeys.KeyQ) {
+                shouldQuit = true;
+                paused = true;
+                this.gameState.setState('highScores');
+            }
+            if (this.controlKeys.KeyP) {
+                paused != paused;
+            }
+
+            if (!paused) {
+                for (const ent of game.entities) {
+                    ent.update(this.controlKeys);
+                }
+            }
         }
     },
     
     draw: function() {
-        //  clear to bgColor before drawing all entities
-        vp.ctx.fillStyle = game.bgColor;
-        vp.ctx.fillRect(0,0,vp.canvas.width,vp.canvas.height);
+        if(!shouldQuit && !paused) {
+            //  clear to bgColor before drawing all entities
+            vp.ctx.fillStyle = game.bgColor;
+            vp.ctx.fillRect(0,0,vp.canvas.width,vp.canvas.height);
 
-        for (const ent of game.entities) {
-            ent.draw()
+            for (const ent of game.entities) {
+                ent.draw()
+            }
         }
     },
     
     loop: function() {
-        if(!shouldQuit && !paused) { 
+         
             game.update()
             game.draw()
-        }
+        
         requestAnimationFrame(game.loop);    // keep game loop running while on page
     },
 
