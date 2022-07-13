@@ -74,7 +74,10 @@ class Ball extends Circle {
         
         newPos = this.hitBoundry(newPos);
         newPos = this.hitPaddle(newPos);
-
+        for (const brick of game.bricks) {
+            newPos = this.hitBrick(newPos, brick);
+        }
+console.log(`update ball vel ${this.vel.x}, ${this.vel.y}`)
         this.setPosition(newPos.x, newPos.y);
 
         if (newPos.y > vp.canvas.height) {
@@ -118,6 +121,62 @@ class Ball extends Circle {
         this.vel.x += game.paddle.getAveVel();
         return pos;
     }
+
+    hitBrick(pos, brick) {
+        if (brick.isDestroyed() )
+            return pos;
+        const r = this.getRadius();
+        const brickPos = brick.getPosition();
+        const brickHalfSz = brick.getHalfSize();
+        const brickUL = brick.getUpperLeft();
+        const brickUR = brick.getUpperRight();
+        const brickLR = brick.getLowerRight();
+        const brickLL = brick.getLowerLeft();
+        const brickW = brick.getWidth();
+        const brickH = brick.getHeight(); 
+
+        // // check the cannot collide conditions
+        // if ((pos.x + r < brickUL.x) || (pos.x - r > brickLR.x) ||
+        //     (pos.y + r < brickUL.y) || (pos.y - r > brickLR.y)) {
+        //     //not colliding
+        //     return pos;
+        // }
+
+        let min = brickUL;
+        let max = brickLR;
+        let closestPoint = {x:pos.x, y:pos.y};
+        if(closestPoint.x < min.x) closestPoint.x = min.x;
+        if(closestPoint.y < min.y) closestPoint.y = min.y;
+        if(closestPoint.x > max.x) closestPoint.x = max.x;
+        if(closestPoint.y > min.y) closestPoint.y = max.y;
+        
+        let len2CPsq = (pos.x-closestPoint.x)**2 + (pos.y-closestPoint.y)**2
+        if (len2CPsq <= r**2){
+            // collision
+            console.log(`cp ${closestPoint.x}, ${closestPoint.y}    min ${min.x}, ${min.y}   max ${max.x}, ${max.y}`)
+            brick.setHitThisFrame();
+            if (closestPoint.x === min.x || (closestPoint.x - min.x) / brickW < .1) { // hit on or very close to left side
+                console.log(`hit brick on left ${this.vel.x} threshold : ${(closestPoint.x - min.x) / brickW}`);
+                this.vel.x = this.vel.x > 0 ? this.vel.x *= -1: this.vel.x;
+                pos.x = min.x - r;
+            } else if (closestPoint.x === max.x || (max.x - closestPoint.x) / brickW < .1) { // hit on or very close to right side
+                console.log(`hit brick on right ${this.vel.x} threshold : ${(max.x - closestPoint.x) / brickW}`);
+                this.vel.x = this.vel.x < 0 ? this.vel.x *= -1: this.vel.x;
+                pos.x = max.x + r;
+            }
+            if (closestPoint.y === min.y || (closestPoint.y - min.y) / brickH < .1) { //hit on or very close to top
+                console.log(`hit brick on top ${this.vel.y} threshold : ${(closestPoint.y - min.y) / brickH}`);
+                this.vel.y = this.vel.y > 0 ? this.vel.y *= -1: this.vel.y;
+                pos.y = min.y - r;
+            } else if (closestPoint.y === max.y || (max.y - closestPoint.y) / brickH < .1) { //hit on or very close to bottom
+                console.log(`hit brick on bottom ${this.vel.y} threshold : ${(max.y - closestPoint.y) / brickH}`);
+                this.vel.y = this.vel.y < 0 ? this.vel.y *= -1: this.vel.y;
+                pos.y = max.y + r;
+            }
+        }
+        return pos;
+    }
+
 }
 
 //================================================================
@@ -149,6 +208,7 @@ class Rect extends Entity {
     getPosition() { return this.pos; }
     getWidth() { return this.w; }
     getHeight() { return this.h; }
+    getHalfSize() { return { x: this.w/2, y: this.h/2}; }
     getUpperLeft() { return this.ulCorner; }
     getLowerRight() { return this.brCorner; }
     getUpperRight() { return { x: this.brCorner.x, y: this.ulCorner.y}; }
@@ -175,12 +235,26 @@ class Brick extends Rect {
     health = 1;     //number of hits required to break
     points = 1;     //number of points to add to player's score when broken
     destroyed = false;
+    hitThisFrame = false;
 
     constructor(posX = 0, posY = 0, width = 0, height = 0, health = 1, points = 1, color = '#00d') {
         super(posX, posY, width, height, color);
         this.health = health;
         this.points = points;
         this.destroyed = false;
+    }
+
+    setHitThisFrame() { this.hitThisFrame=true; }
+
+    isDestroyed() { return this.destroyed; }
+    isHitThisFrame() { return this.hitThisFrame; }
+
+    update() {
+        if (this.hitThisFrame) {
+            this.health--;
+            if(this.health <= 0)
+                this.destroyed = true;
+        }
     }
 
     draw() {
@@ -222,7 +296,7 @@ class Paddle extends Rect {
 
         }
         this.vels.push(curVel);
-        if (this.vels.length > 5)
+        if (this.vels.length > 10)
             this.vels.shift();
         this.averageVel = this.vels.reduce((acc, el) => acc + el)/this.vels.length;
     }
@@ -357,6 +431,7 @@ const game = {
         this.paddle = null;
 
         this.loadLevel();
+        // this.bricks.push(new Brick( 250, 250, 100, 40));
     },
 
     loadLevel: function() {
@@ -412,10 +487,13 @@ const game = {
             }
 
             if (!paused) {
+                this.paddle.update(dt, this.controlKeys);
                 for (const ball of game.balls) {
                     ball.update(dt);
                 }
-                this.paddle.update(dt, this.controlKeys);
+                for (const brick of this.bricks) {
+                    brick.update(dt);
+                }
             }
         }
     },
