@@ -56,7 +56,8 @@ class Circle extends Entity {
 // Ball - 2d filled circle
 //================================================================
 class Ball extends Circle {
-    vel = {x:0, y:0}
+    vel = {x:0, y:0};
+    active = true;
 
     constructor(rad = 0, posX = 0, posY = 0, velX = 0, velY = 0, color = '#ddd') {
         super(rad, posX, posY, color);
@@ -65,26 +66,57 @@ class Ball extends Circle {
     }
 
     update(dt) {
-        let newX = this.getPosition().x + this.vel.x * dt;
-        if(newX < this.getRadius()){
-            newX = this.getRadius();
+        if(!this.active)
+            return;
+        let newPos = {};
+        newPos.x = this.getPosition().x + this.vel.x * dt;
+        newPos.y = this.getPosition().y + this.vel.y * dt;
+        
+        newPos = this.hitBoundry(newPos);
+        newPos = this.hitPaddle(newPos);
+
+        this.setPosition(newPos.x, newPos.y);
+
+        if (newPos.y > vp.canvas.height) {
+            //life lost
+            this.active = false;
+            console.log('life lost');
+        }
+    }
+
+    hitBoundry(pos) {
+        if(pos.x < this.getRadius()) {
+            pos.x = this.getRadius();
             this.vel.x *= -1;
-        } else if (newX + this.getRadius() > vp.canvas.width) {
-            newX = vp.canvas.width - this.getRadius();
+        } else if (pos.x + this.getRadius() > vp.canvas.width) {
+            pos.x = vp.canvas.width - this.getRadius();
             this.vel.x *= -1;
         }
-        
-        let newY = this.getPosition().y + this.vel.y * dt;
-        if (newY < this.getRadius()) { 
-            newY = this.getRadius();
+        if (pos.y < this.getRadius()) { 
+            pos.y = this.getRadius();
             this.vel.y *= -1;
         }
+        return pos;
+    }
 
-        this.setPosition(newX, newY);
+    hitPaddle(pos) {
+        const r = this.getRadius();
+        const padPos = game.paddle.getPosition();
+        const padW = game.paddle.getWidth()/2;
+        const padH = game.paddle.getHeight()/2;
 
-        if (newY > vp.canvas.height) {
-            //life lost
+        //first check the cannot collide conditions
+        if((pos.x + r < padPos.x - padW) ||
+           (pos.x - r > padPos.x + padW) ||
+           (pos.y + r < padPos.y - padH) ||
+           (pos.y - r > padPos.y + padH)) {
+            return pos;
         }
+
+        pos.y = padPos.y - padH - r;
+        this.vel.y = this.vel.y > 0 ? this.vel.y *= -1: this.vel.y;
+        this.vel.x += game.paddle.getAveVel();
+        return pos;
     }
 }
 
@@ -119,7 +151,8 @@ class Rect extends Entity {
     getHeight() { return this.h; }
     getUpperLeft() { return this.ulCorner; }
     getLowerRight() { return this.brCorner; }
-    
+    getUpperRight() { return { x: this.brCorner.x, y: this.ulCorner.y}; }
+    getLowerLeft() { return { x: this.ulCorner.x, y: this.brCorner.y}; }
 
     setPosition(posX, posY = this.pos.y) {
         this.pos.x = posX;
@@ -160,27 +193,38 @@ class Brick extends Rect {
 // Paddle - Player controlable rectangle
 //================================================================
 class Paddle extends Rect {
-    vel = .5;        // movement speed per frame
+    maxVel = .5;        // movement speed per frame
     normalWidth = 0;
+    averageVel = 0;
+    vels = [];
 
     constructor(posX = 0, posY = 0, width = 0, height = 0, color = '#dd1') {
         super(posX, posY, width, height, color);
         this.normalWidth = width;    
     }
 
+    getAveVel() { return this.averageVel; }
+
     update(dt, keys) {
+        let curVel = 0;
         if (keys.ArrowLeft) {
-            let newX = this.getPosition().x - this.vel * dt;
+            curVel -= this.maxVel; 
+            let newX = this.getPosition().x - this.maxVel * dt;
             newX = newX > this.getWidth()/2 ? newX : this.getWidth()/2;
             this.setPosition(newX);
         } else if (keys.ArrowRight) {
-            let newX = this.getPosition().x + this.vel * dt;
+            curVel += this.maxVel;
+            let newX = this.getPosition().x + this.maxVel * dt;
             newX = newX < vp.canvas.width - this.getWidth()/2 ? newX : vp.canvas.width - this.getWidth()/2;
             this.setPosition(newX);
         }
         if (keys.Space) {
 
         }
+        this.vels.push(curVel);
+        if (this.vels.length > 5)
+            this.vels.shift();
+        this.averageVel = this.vels.reduce((acc, el) => acc + el)/this.vels.length;
     }
 }
 
@@ -191,7 +235,9 @@ const vp = {}
 let shouldQuit = false;
 let paused = false;
 const game = {
-    entities: [],
+    bricks: [],
+    balls: [],
+    paddle: null,
     bgColor: '#222',
     lastUpdateTime: 0,
     level: 1,
@@ -303,8 +349,13 @@ const game = {
 
         this.gameState.setState('instructions');
         this.level = 1;
-        while (this.entities.length > 0)
-            this.entities.pop()
+        
+        while (this.bricks.length > 0)
+            this.bricks.pop();
+        while (this.balls.length > 0)
+            this.balls.pop();
+        this.paddle = null;
+
         this.loadLevel();
     },
 
@@ -320,12 +371,12 @@ const game = {
 
         for (let i=0; i<4; i++) {
             for (let j=0; j<6; j++) {
-                this.entities.push(new Brick(col + brickWidth * j + colPad * j, row + brickHeight * i + rowPad * i, brickWidth, brickHeight));
+                this.bricks.push(new Brick(col + brickWidth * j + colPad * j, row + brickHeight * i + rowPad * i, brickWidth, brickHeight));
             }
         }
 
-        this.entities.push(new Ball(10,50,vp.canvas.height - 30,.2,-.2));
-        this.entities.push(new Paddle(vp.canvas.width / 2, vp.canvas.height - 20, 120, 20));
+        this.balls.push(new Ball(10,50,vp.canvas.height - 30,.2,-.2));
+        this.paddle = new Paddle(vp.canvas.width / 2, vp.canvas.height - 20, 120, 20);
     },
 
     update: function(dt) { 
@@ -361,9 +412,10 @@ const game = {
             }
 
             if (!paused) {
-                for (const ent of game.entities) {
-                    ent.update(dt, this.controlKeys);
+                for (const ball of game.balls) {
+                    ball.update(dt);
                 }
+                this.paddle.update(dt, this.controlKeys);
             }
         }
     },
@@ -374,9 +426,13 @@ const game = {
             vp.ctx.fillStyle = game.bgColor;
             vp.ctx.fillRect(0,0,vp.canvas.width,vp.canvas.height);
 
-            for (const ent of game.entities) {
-                ent.draw()
+            for (const brick of game.bricks) {
+                brick.draw();
             }
+            for (const ball of this.balls) {
+                ball.draw();
+            }
+            this.paddle.draw();
         }
     },
     
