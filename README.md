@@ -1,7 +1,7 @@
 # Extreme Breakout
 
 ## Description
-This is a modified version of the classic break-out game. One player can control a paddle to slide left and right to bounce a ball upward into an assortment of blocks which take a varying number of hits to break. Each hit will add to the players score, and if the player misses the ball it will cost them a life. As difficulty increases there will be an alien that will move across the top of the screen hat will shoot downward and if the projectile hits the player's paddle will also cause a life to be lost. Various power ups are available to aid the player as they attempt to break all the blocks and destroy the alien invader.
+This is a modified version of the classic break-out game. One player can control a paddle to slide left and right to bounce a ball upward into an assortment of blocks which take a varying number of hits to break. Each hit will add to the players score, and if the player misses the ball it will cost them a life. As difficulty increases there will be an alien that will move across the top of the screen hat will shoot downward and if the projectile hits the player's paddle it stop the player from moving for a short time. Various power ups are available to aid the player as they attempt to break all the blocks and destroy the alien invader.
 
 ## Wire Frames
 <img src="./assets/game_screen.png">
