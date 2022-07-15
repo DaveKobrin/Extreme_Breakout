@@ -418,13 +418,14 @@ const game = {
         this.level = 1;
         this.score = 0;
 
-        while (this.bricks.length > 0)
-            this.bricks.pop();
         while (this.balls.length > 0)
             this.balls.pop();
         this.paddle = null;
-
+        
         this.loadLevel();
+
+        this.balls.push(new Ball(10,50,vp.canvas.height - 30,.2,-.2));
+        this.paddle = new Paddle(vp.canvas.width / 2, vp.canvas.height - 20, 120, 20);
         // this.bricks.push(new Brick( 250, 250, 100, 40));
     },
 
@@ -434,18 +435,19 @@ const game = {
         const gutterWidth = 20;
         const brickWidth = (vp.canvas.width - colPad*5 - gutterWidth*2)/6;
         const brickHeight = 25;
-        let row = 100;
+        const row = 100;
         const col = gutterWidth + brickWidth/2;
 
+        //clear any bricks from the array
+        while (this.bricks.length > 0)
+            this.bricks.pop();
 
+        //create new bricks
         for (let i=0; i<4; i++) {
             for (let j=0; j<6; j++) {
-                this.bricks.push(new Brick(col + brickWidth * j + colPad * j, row + brickHeight * i + rowPad * i, brickWidth, brickHeight));
+                this.bricks.push(new Brick(col + brickWidth * j + colPad * j, row + brickHeight * i + rowPad * i, brickWidth, brickHeight, this.level));
             }
         }
-
-        this.balls.push(new Ball(10,50,vp.canvas.height - 30,.2,-.2));
-        this.paddle = new Paddle(vp.canvas.width / 2, vp.canvas.height - 20, 120, 20);
     },
 
     update: function(dt) { 
@@ -494,6 +496,8 @@ const game = {
 
                 if(numBricksDestroyed === this.bricks.length) {
                     // level cleared
+                    this.level++
+                    this.loadLevel();
                 }
             }
         }
