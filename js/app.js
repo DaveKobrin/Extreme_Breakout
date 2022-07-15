@@ -252,6 +252,8 @@ class Brick extends Rect {
     update() {
         if (this.hitThisFrame) {
             this.health--;
+            this.hitThisFrame = false;
+            game.setScore(this.points);
             if(this.health <= 0)
                 this.destroyed = true;
         }
@@ -315,6 +317,8 @@ const game = {
     bgColor: '#222',
     lastUpdateTime: 0,
     level: 1,
+    score: 0,
+    lives: 3,
 
     controlKeys: {
             ArrowRight: false,
@@ -335,80 +339,69 @@ const game = {
         isGamePlay: function() { return this.gamePlay; },
 
         setState: function(state) {
+            let domObj = null;
             switch (state) {
                 case 'instructions':
                     this.instructions = true;
                     this.highScores = false;
                     this.gamePlay = false;
+
+                    domObj = document.querySelector('#instructions');
+                    if (domObj.classList.contains('hidden'))
+                        domObj.classList.remove('hidden');
+                    
+                    domObj = document.querySelector('#highScores');
+                    if (!domObj.classList.contains('hidden'))
+                        domObj.classList.add('hidden');
+
+                    domObj = document.querySelector('#gameWindow');
+                    if (!domObj.classList.contains('hidden'))
+                        domObj.classList.add('hidden');
                     break;
+                
                 case 'highScores':
                     this.instructions = false;
                     this.highScores = true;
                     this.gamePlay = false;
+                    domObj = document.querySelector('#highScores');
+                    if (domObj.classList.contains('hidden'))
+                        domObj.classList.remove('hidden');
+                    
+                    domObj = document.querySelector('#instructions');
+                    if (!domObj.classList.contains('hidden'))
+                        domObj.classList.add('hidden');
+
+                    domObj = document.querySelector('#gameWindow');
+                    if (!domObj.classList.contains('hidden'))
+                        domObj.classList.add('hidden');
                     break;
+                
                 case 'gamePlay':
                     this.instructions = false;
                     this.highScores = false;
                     this.gamePlay = true;
+                    domObj = document.querySelector('#gameWindow');
+                    if (domObj.classList.contains('hidden'))
+                        domObj.classList.remove('hidden');
+                    
+                    domObj = document.querySelector('#instructions');
+                    if (!domObj.classList.contains('hidden'))
+                        domObj.classList.add('hidden');
+
+                    domObj = document.querySelector('#highScores');
+                    if (!domObj.classList.contains('hidden'))
+                        domObj.classList.add('hidden');
                     break;
+                
                 default:
                     console.log(`ERROR! trying to switch gameState to ${state}!`);
                     return;
             }
-            this.updateDom(state);
-        },
-
-        updateDom: function(state) {
-            let domObj = null;
-            switch (state) {
-                case 'instructions':
-                    domObj = document.querySelector('#instructions');
-                    if (domObj.classList.contains('hidden'))
-                        domObj.classList.remove('hidden');
-                    
-                    domObj = document.querySelector('#highScores');
-                    if (!domObj.classList.contains('hidden'))
-                        domObj.classList.add('hidden');
-
-                    domObj = document.querySelector('#gameWindow');
-                    if (!domObj.classList.contains('hidden'))
-                        domObj.classList.add('hidden');
-                    break;
-
-                case 'highScores':
-                    domObj = document.querySelector('#highScores');
-                    if (domObj.classList.contains('hidden'))
-                        domObj.classList.remove('hidden');
-                    
-                    domObj = document.querySelector('#instructions');
-                    if (!domObj.classList.contains('hidden'))
-                        domObj.classList.add('hidden');
-
-                    domObj = document.querySelector('#gameWindow');
-                    if (!domObj.classList.contains('hidden'))
-                        domObj.classList.add('hidden');
-                    break;
-                    
-                case 'gamePlay':
-                    domObj = document.querySelector('#gameWindow');
-                    if (domObj.classList.contains('hidden'))
-                        domObj.classList.remove('hidden');
-                    
-                    domObj = document.querySelector('#instructions');
-                    if (!domObj.classList.contains('hidden'))
-                        domObj.classList.add('hidden');
-
-                    domObj = document.querySelector('#highScores');
-                    if (!domObj.classList.contains('hidden'))
-                        domObj.classList.add('hidden');
-                    break;
-                    
-                default:
-                    console.log(`ERROR! trying to updateDom to ${state}!`);
-                    return;
-            }
         }
     },
+
+    getScore() { return this.score; },
+    setScore(amount) { this.score += amount; },
 
     init: function() {
         vp.canvas = document.querySelector('#viewport');
@@ -423,7 +416,8 @@ const game = {
 
         this.gameState.setState('instructions');
         this.level = 1;
-        
+        this.score = 0;
+
         while (this.bricks.length > 0)
             this.bricks.pop();
         while (this.balls.length > 0)
@@ -491,18 +485,39 @@ const game = {
                 for (const ball of game.balls) {
                     ball.update(dt);
                 }
+                let numBricksDestroyed = 0;
                 for (const brick of this.bricks) {
                     brick.update(dt);
+                    if (brick.isDestroyed())
+                        numBricksDestroyed++;
+                }
+
+                if(numBricksDestroyed === this.bricks.length) {
+                    // level cleared
                 }
             }
         }
     },
     
+    updateStatusBar() {
+        //score level lives
+        let domObj = document.querySelector('#score')
+        domObj.innerText = this.score;
+
+        domObj = document.querySelector('#level')
+        domObj.innerText = this.level;
+        
+        domObj = document.querySelector('#lives')
+        domObj.innerText = this.lives;
+    },
+
     draw: function() {
         if(!shouldQuit && !paused) {
             //  clear to bgColor before drawing all entities
             vp.ctx.fillStyle = game.bgColor;
             vp.ctx.fillRect(0,0,vp.canvas.width,vp.canvas.height);
+
+            this.updateStatusBar();
 
             for (const brick of game.bricks) {
                 brick.draw();
