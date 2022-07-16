@@ -52,6 +52,24 @@ class Circle extends Entity {
     }
 }
 
+//=================================================================
+// Bomb - projectile class extends Circle - dropped at paddle
+//=================================================================
+class Bomb extends Circle {
+    vel = { x: 0, y: .2 };
+
+    update(dt) {
+        let newPos = { x: this.getPosition().x + this.vel.x * dt, y: this.getPosition().y + this.vel.y * dt };
+
+        if( newPos.y > vp.canvas.height + this.getRadius()) {   // bombs all fall at the samee speed, so if off the field, remove first bomb
+            game.bombs.shift();
+        }
+
+        this.setPosition(newPos.x, newPos.y);
+    }
+
+}
+
 //================================================================
 // Ball - 2d filled circle
 //================================================================
@@ -92,9 +110,12 @@ class Ball extends Circle {
             newPos.y = this.getPosition().y + this.vel.y * dt;
             
             newPos = this.hitBoundry(newPos);
-            newPos = this.hitPaddle(newPos);
+            newPos = this.hitRect(newPos, game.paddle);
             for (const brick of game.bricks) {
-                newPos = this.hitBrick(newPos, brick);
+                newPos = this.hitRect(newPos, brick);
+            }
+            for (const alien of game.aliens) {
+                newPos = this.hitRect(newPos, alien);
             }
         }
 console.log(`update ball vel ${this.vel.x}, ${this.vel.y}`)
@@ -122,19 +143,11 @@ console.log(`update ball vel ${this.vel.x}, ${this.vel.y}`)
         return pos;
     }
 
-    hitPaddle(pos) {
-            
-        return this.hitRect(pos, game.paddle);
-    }
-
-    hitBrick(pos, brick) {
-        if (brick.isDestroyed() )
-            return pos;
-
-        return this.hitRect(pos, brick);
-    }
-
     hitRect(pos, rect) {
+        if (rect instanceof DestructableRect)
+            if (rect.isDestroyed())
+                return pos;
+
         const r     = this.getRadius();
         const rectW = rect.getWidth();
         const rectH = rect.getHeight(); 
@@ -170,7 +183,7 @@ console.log(`update ball vel ${this.vel.x}, ${this.vel.y}`)
                 this.vel.y = this.vel.y < 0 ? this.vel.y *= -1: this.vel.y;
                 pos.y = max.y + r;
             }
-            if (rect instanceof Brick)
+            if (rect instanceof DestructableRect)
                 rect.setHitThisFrame();
 
             if (rect instanceof Paddle) {
@@ -235,10 +248,11 @@ class Rect extends Entity {
     }
 }
 
-//================================================================
-// Brick - Destroyable block rectangle
-//================================================================
-class Brick extends Rect {
+//=================================================================
+// DestructableRect - extends Rect - adds hit tracking point value
+//                    and life management
+//=================================================================
+class DestructableRect extends Rect {
     health = 1;     //number of hits required to break
     points = 1;     //number of points to add to player's score when broken
     destroyed = false;
@@ -270,6 +284,69 @@ class Brick extends Rect {
         if (!this.destroyed)
             super.draw();
     }
+
+}
+//================================================================
+// Brick - Destroyable block rectangle
+//================================================================
+class Brick extends DestructableRect {
+    constructor(posX = 0, posY = 0, width = 0, height = 0, health = 1, points = 1, color = '#00d') {
+        super(posX, posY, width, height, health, points, color);
+    }
+
+}
+
+//=================================================================
+// Alien - enemy class extends Rect - will fire bombs down at paddle
+//=================================================================
+class Alien extends DestructableRect {
+    image = '';
+    maxVel = .5;
+    maxBombChance = 0;
+    bombChanceStep = 0;
+    bombChance = 0;
+    lastVel = 0;
+    
+    constructor(posX = 0, posY = 0, width = 0, height = 0, health = 1, points = 1, maxBombChance = .001, bombChanceStep = .001, color = '#0d0') {
+        super(posX, posY, width, height, health, points, color);
+        this.maxBombChance = maxBombChance;
+        this.bombChanceStep = bombChanceStep;
+    }
+
+    update(dt) {
+        super.update();
+        let curVel = (Math.random()*this.maxVel*2 - this.maxVel)/10 + this.lastVel // random x velocity between -maxVel and +maxVel
+        curVel = curVel > this.maxVel ? this.maxVel : curVel;
+        curVel = curVel < -this.maxVel ? -this.maxVel : curVel;
+        this.lastVel = curVel;
+
+        let newX = this.getPosition().x + curVel * dt;
+        if (newX < this.getHalfSize().x){
+            newX = this.getHalfSize().x;
+            this.lastVel = -this.lastVel;
+        } else if (newX > vp.canvas.width - this.getHalfSize().x) {
+            newX = vp.canvas.width - this.getHalfSize().x;
+            this.lastVel = -this.lastVel;
+        }
+            
+        this.setPosition(newX);
+        
+        if (this.shouldAttack()) {
+            game.bombs.push(new Bomb(10, this.getPosition().x, this.getPosition().y, '#ad1'));
+        }
+        // console.log(`curVel: ${curVel}  newX: ${newX}`);
+    }
+
+    shouldAttack() { 
+        this.bombChance += this.bombChanceStep;
+        this.bombChance = this.bombChance > this.maxBombChance ? this.maxBombChance : this.bombChance; 
+        let bomb = Math.random() < this.bombChance;
+        if (bomb) {
+            this.bombChance = 0;
+            return true;
+        }
+        return false;
+    }
 }
 
 //================================================================
@@ -293,13 +370,13 @@ class Paddle extends Rect {
         let curVel = 0;
         if (keys.ArrowLeft) {
             curVel -= this.maxVel; 
-            let newX = this.getPosition().x - this.maxVel * dt;
-            newX = newX > this.getWidth()/2 ? newX : this.getWidth()/2;
+            let newX = this.getPosition().x + curVel * dt;
+            newX = newX > this.getHalfSize().x ? newX : this.getHalfSize().x;
             this.setPosition(newX);
         } else if (keys.ArrowRight) {
             curVel += this.maxVel;
-            let newX = this.getPosition().x + this.maxVel * dt;
-            newX = newX < vp.canvas.width - this.getWidth()/2 ? newX : vp.canvas.width - this.getWidth()/2;
+            let newX = this.getPosition().x + curVel * dt;
+            newX = newX < vp.canvas.width - this.getHalfSize().x ? newX : vp.canvas.width - this.getHalfSize().x;
             this.setPosition(newX);
         }
 
@@ -395,6 +472,8 @@ class GameState {
 class Game {
     bricks = [];
     balls = [];
+    aliens = [];
+    bombs = [];
     paddle = null;
     bgColor = '#222';
     lastUpdateTime = 0;
@@ -464,16 +543,21 @@ class Game {
         const row = 100;
         const col = gutterWidth + brickWidth/2;
 
-        //clear any bricks from the array
+        //clear any level objects from the arrays
         while (this.bricks.length > 0)
             this.bricks.pop();
-
+        while (this.aliens.length > 0)
+            this.aliens.pop();
+            
         //create new bricks
         for (let i=0; i<4; i++) {
             for (let j=0; j<6; j++) {
                 this.bricks.push(new Brick(col + brickWidth * j + colPad * j, row + brickHeight * i + rowPad * i, brickWidth, brickHeight, this.level));
             }
         }
+
+        this.aliens.push(new Alien(vp.canvas.width/2, 50, 50, 50, 1, 100,(.001 * this.level), (.0001 * this.level)));
+
     }
 
     update(dt) { 
@@ -545,6 +629,15 @@ class Game {
                     this.level++
                     this.loadLevel();
                 }
+
+                for (const alien of this.aliens) {
+                    if (!alien.isDestroyed())
+                        alien.update(dt);
+                }
+                
+                for (const bomb of this.bombs) {
+                    bomb.update(dt);
+                }
             }
         }
     }
@@ -571,6 +664,12 @@ class Game {
 
             for (const brick of game.bricks) {
                 brick.draw();
+            }
+            for (const alien of this.aliens) {
+                alien.draw();
+            }
+            for (const bomb of this.bombs) {
+                bomb.draw();
             }
             for (const ball of this.balls) {
                 ball.draw();
@@ -603,9 +702,6 @@ class Game {
     }
 
 }
-//=================================================================
-//
-//=================================================================
 
 //-----------------------------------------------------------------
 //  Global Variables
@@ -620,3 +716,6 @@ const game = new Game();
 //-----------------------------------------------------------------
 game.init();
 game.loop();
+//=================================================================
+//
+//=================================================================
