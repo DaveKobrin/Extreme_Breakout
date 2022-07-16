@@ -57,25 +57,43 @@ class Circle extends Entity {
 //================================================================
 class Ball extends Circle {
     vel = {x:0, y:0};
+    maxVelY = .2;
+    maxVelX = .5;
     active = true;
+    sticky = true;
 
     constructor(rad = 0, posX = 0, posY = 0, velX = 0, velY = 0, color = '#ddd') {
         super(rad, posX, posY, color);
         this.vel.x = velX;
         this.vel.y = velY;
+        this.sticky = true;
     }
 
     update(dt) {
+        const keys = game.getControlKeys();
         if(!this.active)
             return;
+
         let newPos = {};
-        newPos.x = this.getPosition().x + this.vel.x * dt;
-        newPos.y = this.getPosition().y + this.vel.y * dt;
-        
-        newPos = this.hitBoundry(newPos);
-        newPos = this.hitPaddle(newPos);
-        for (const brick of game.bricks) {
-            newPos = this.hitBrick(newPos, brick);
+
+        if (this.sticky) {
+            newPos.x = game.paddle.getPosition().x;
+            newPos.y = game.paddle.getPosition().y - game.paddle.getHalfSize().y - this.rad;
+            this.vel.x = game.paddle.getAveVel();
+            this.vel.y = 0;
+            if (keys.Space) {
+                this.vel.y = -(this.maxVelY);
+                this.sticky = false;
+            }
+        } else {   
+            newPos.x = this.getPosition().x + this.vel.x * dt;
+            newPos.y = this.getPosition().y + this.vel.y * dt;
+            
+            newPos = this.hitBoundry(newPos);
+            newPos = this.hitPaddle(newPos);
+            for (const brick of game.bricks) {
+                newPos = this.hitBrick(newPos, brick);
+            }
         }
 console.log(`update ball vel ${this.vel.x}, ${this.vel.y}`)
         this.setPosition(newPos.x, newPos.y);
@@ -268,7 +286,8 @@ class Paddle extends Rect {
 
     getAveVel() { return this.averageVel; }
 
-    update(dt, keys) {
+    update(dt) {
+        const keys = game.getControlKeys();
         let curVel = 0;
         if (keys.ArrowLeft) {
             curVel -= this.maxVel; 
@@ -281,9 +300,7 @@ class Paddle extends Rect {
             newX = newX < vp.canvas.width - this.getWidth()/2 ? newX : vp.canvas.width - this.getWidth()/2;
             this.setPosition(newX);
         }
-        if (keys.Space) {
 
-        }
         this.vels.push(curVel);
         if (this.vels.length > 10)
             this.vels.shift();
@@ -387,6 +404,7 @@ const game = {
         }
     },
 
+    getControlKeys() { return this.controlKeys; },
     getScore() { return this.score; },
     setScore(amount) { this.score += amount; },
 
@@ -470,7 +488,8 @@ const game = {
             }
 
             if (!paused) {
-                this.paddle.update(dt, this.controlKeys);
+                this.paddle.update(dt);
+                
                 for (const ball of game.balls) {
                     ball.update(dt);
                 }
