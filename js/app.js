@@ -69,6 +69,8 @@ class Ball extends Circle {
         this.sticky = true;
     }
 
+    isActive() { return this.active; }
+
     update(dt) {
         const keys = game.getControlKeys();
         if(!this.active)
@@ -422,6 +424,7 @@ const game = {
         this.gameState.setState('instructions');
         this.level = 1;
         this.score = 0;
+        this.lives = 3;
 
         while (this.balls.length > 0)
             this.balls.pop();
@@ -429,7 +432,7 @@ const game = {
         
         this.loadLevel();
 
-        this.balls.push(new Ball(10,50,vp.canvas.height - 30,.2,-.2));
+        this.balls.push(new Ball(10));
         this.paddle = new Paddle(vp.canvas.width / 2, vp.canvas.height - 20, 120, 20);
         // this.bricks.push(new Brick( 250, 250, 100, 40));
     },
@@ -489,10 +492,29 @@ const game = {
 
             if (!paused) {
                 this.paddle.update(dt);
-                
-                for (const ball of game.balls) {
-                    ball.update(dt);
+
+                let numActiveBalls = this.balls.length
+                for (const ball of this.balls) {
+                    if (ball.isActive()) {
+                        ball.update(dt);
+                    } else {
+                        numActiveBalls--;
+                    }
                 }
+
+                if (numActiveBalls === 0){
+                    while (this.balls.length > 0)
+                        this.balls.pop();
+                    this.lives--;
+                    if (this.lives > 0) {
+                        this.balls.push(new Ball(10));
+                    } else {
+                        // game over
+                        alert('GAME OVER!')
+                        this.gameState.setState('highScores');
+                    }
+                }
+
                 let numBricksDestroyed = 0;
                 for (const brick of this.bricks) {
                     brick.update(dt);
