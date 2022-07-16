@@ -310,107 +310,125 @@ class Paddle extends Rect {
     }
 }
 
-//-----------------------------------------------------------------
-//  Global Variables
-//-----------------------------------------------------------------
-const vp = {}
-let shouldQuit = false;
-let paused = false;
-const game = {
-    bricks: [],
-    balls: [],
-    paddle: null,
-    bgColor: '#222',
-    lastUpdateTime: 0,
-    level: 1,
-    score: 0,
-    lives: 3,
+//=================================================================
+// GameState - control what mode the game is in
+//=================================================================
+class GameState {
+    instructions = true;
+    highScores   = false;
+    gamePlay     = false;
 
-    controlKeys: {
+    constructor(){
+        this.instructions = true;
+        this.highScores   = false;
+        this.gamePlay     = false;    
+    }
+
+    isInstructions() { return this.instructions; };
+    isHighScores() { return this.highScores; };
+    isGamePlay() { return this.gamePlay; };
+
+    setState(state) {
+        let domObj = null;
+        switch (state) {
+            case 'instructions':
+                this.instructions = true;
+                this.highScores = false;
+                this.gamePlay = false;
+
+                domObj = document.querySelector('#instructions');
+                if (domObj.classList.contains('hidden'))
+                    domObj.classList.remove('hidden');
+                
+                domObj = document.querySelector('#highScores');
+                if (!domObj.classList.contains('hidden'))
+                    domObj.classList.add('hidden');
+
+                domObj = document.querySelector('#gameWindow');
+                if (!domObj.classList.contains('hidden'))
+                    domObj.classList.add('hidden');
+                break;
+            
+            case 'highScores':
+                this.instructions = false;
+                this.highScores = true;
+                this.gamePlay = false;
+                domObj = document.querySelector('#highScores');
+                if (domObj.classList.contains('hidden'))
+                    domObj.classList.remove('hidden');
+                
+                domObj = document.querySelector('#instructions');
+                if (!domObj.classList.contains('hidden'))
+                    domObj.classList.add('hidden');
+
+                domObj = document.querySelector('#gameWindow');
+                if (!domObj.classList.contains('hidden'))
+                    domObj.classList.add('hidden');
+                break;
+            
+            case 'gamePlay':
+                this.instructions = false;
+                this.highScores = false;
+                this.gamePlay = true;
+                domObj = document.querySelector('#gameWindow');
+                if (domObj.classList.contains('hidden'))
+                    domObj.classList.remove('hidden');
+                
+                domObj = document.querySelector('#instructions');
+                if (!domObj.classList.contains('hidden'))
+                    domObj.classList.add('hidden');
+
+                domObj = document.querySelector('#highScores');
+                if (!domObj.classList.contains('hidden'))
+                    domObj.classList.add('hidden');
+                break;
+            
+            default:
+                console.log(`ERROR! trying to switch gameState to ${state}!`);
+                return;
+        }
+    }
+}
+//=================================================================
+// Game - the main class for the game
+//=================================================================
+class Game {
+    bricks = [];
+    balls = [];
+    paddle = null;
+    bgColor = '#222';
+    lastUpdateTime = 0;
+    level = 1;
+    score = 0;
+    lives = 3;
+    gameState = null;
+
+    controlKeys = {
             ArrowRight: false,
             ArrowLeft:  false,
             Space:      false,
             KeyP:       false,
             KeyI:       false,
             KeyQ:       false
-    },
+    };
 
-    gameState: {
-        instructions:   true,
-        highScores:     false,
-        gamePlay:       false,
+    constructor () {
+        this.bricks = [];
+        this.balls = [];
+        this.paddle = null;
+        this.bgColor = '#222';
+        this.lastUpdateTime = 0;
+        this.level = 1;
+        this.score = 0;
+        this.lives = 3;
+        this.gameState = new GameState();
+    }
 
-        isInstructions: function() { return this.instructions; },
-        isHighScores: function() { return this.highScores; },
-        isGamePlay: function() { return this.gamePlay; },
+    getControlKeys() { return this.controlKeys; }
+    getScore() { return this.score; }
+    setScore(amount) { this.score += amount; }
 
-        setState: function(state) {
-            let domObj = null;
-            switch (state) {
-                case 'instructions':
-                    this.instructions = true;
-                    this.highScores = false;
-                    this.gamePlay = false;
-
-                    domObj = document.querySelector('#instructions');
-                    if (domObj.classList.contains('hidden'))
-                        domObj.classList.remove('hidden');
-                    
-                    domObj = document.querySelector('#highScores');
-                    if (!domObj.classList.contains('hidden'))
-                        domObj.classList.add('hidden');
-
-                    domObj = document.querySelector('#gameWindow');
-                    if (!domObj.classList.contains('hidden'))
-                        domObj.classList.add('hidden');
-                    break;
-                
-                case 'highScores':
-                    this.instructions = false;
-                    this.highScores = true;
-                    this.gamePlay = false;
-                    domObj = document.querySelector('#highScores');
-                    if (domObj.classList.contains('hidden'))
-                        domObj.classList.remove('hidden');
-                    
-                    domObj = document.querySelector('#instructions');
-                    if (!domObj.classList.contains('hidden'))
-                        domObj.classList.add('hidden');
-
-                    domObj = document.querySelector('#gameWindow');
-                    if (!domObj.classList.contains('hidden'))
-                        domObj.classList.add('hidden');
-                    break;
-                
-                case 'gamePlay':
-                    this.instructions = false;
-                    this.highScores = false;
-                    this.gamePlay = true;
-                    domObj = document.querySelector('#gameWindow');
-                    if (domObj.classList.contains('hidden'))
-                        domObj.classList.remove('hidden');
-                    
-                    domObj = document.querySelector('#instructions');
-                    if (!domObj.classList.contains('hidden'))
-                        domObj.classList.add('hidden');
-
-                    domObj = document.querySelector('#highScores');
-                    if (!domObj.classList.contains('hidden'))
-                        domObj.classList.add('hidden');
-                    break;
-                
-                default:
-                    console.log(`ERROR! trying to switch gameState to ${state}!`);
-                    return;
-            }
-        }
-    },
-
-    getControlKeys() { return this.controlKeys; },
-    getScore() { return this.score; },
-    setScore(amount) { this.score += amount; },
-
-    init: function() {
+    init() {
         vp.canvas = document.querySelector('#viewport');
         vp.ctx = vp.canvas.getContext('2d');
 
@@ -435,9 +453,9 @@ const game = {
         this.balls.push(new Ball(10));
         this.paddle = new Paddle(vp.canvas.width / 2, vp.canvas.height - 20, 120, 20);
         // this.bricks.push(new Brick( 250, 250, 100, 40));
-    },
+    }
 
-    loadLevel: function() {
+    loadLevel() {
         const rowPad = 6;
         const colPad = 6;
         const gutterWidth = 20;
@@ -456,9 +474,9 @@ const game = {
                 this.bricks.push(new Brick(col + brickWidth * j + colPad * j, row + brickHeight * i + rowPad * i, brickWidth, brickHeight, this.level));
             }
         }
-    },
+    }
 
-    update: function(dt) { 
+    update(dt) { 
         if (this.gameState.isInstructions()) {
             if (this.controlKeys.KeyI || this.controlKeys.KeyP) {
                 this.controlKeys.KeyI = false;
@@ -529,7 +547,7 @@ const game = {
                 }
             }
         }
-    },
+    }
     
     updateStatusBar() {
         //score level lives
@@ -541,9 +559,9 @@ const game = {
         
         domObj = document.querySelector('#lives')
         domObj.innerText = this.lives;
-    },
+    }
 
-    draw: function() {
+    draw() {
         if(!shouldQuit && !paused) {
             //  clear to bgColor before drawing all entities
             vp.ctx.fillStyle = game.bgColor;
@@ -559,33 +577,46 @@ const game = {
             }
             this.paddle.draw();
         }
-    },
+    }
     
-    loop: function() {
+    loop() {
         let currTime = Date.now();
-        let deltaTime = currTime - this.lastUpdateTime;
-        this.lastUpdateTime = currTime;
+        let deltaTime = currTime - game.lastUpdateTime;
+        game.lastUpdateTime = currTime;
 
         game.update(deltaTime)
         game.draw()
         
         requestAnimationFrame(game.loop);    // keep game loop running while on page
-    },
+    }
 
-    keyDownEvent: function(e) {
+    keyDownEvent(e) {
         if(!Object.keys(this.controlKeys).includes(e.code))
             return;
         this.controlKeys[e.code] = true;
-    },
+    }
 
-    keyUpEvent: function(e) {
+    keyUpEvent(e) {
         if(!Object.keys(this.controlKeys).includes(e.code))
             return;
         this.controlKeys[e.code] = false;
     }
 
 }
+//=================================================================
+//
+//=================================================================
 
+//-----------------------------------------------------------------
+//  Global Variables
+//-----------------------------------------------------------------
+const vp = {}
+let shouldQuit = false;
+let paused = false;
+const game = new Game();
 
+//-----------------------------------------------------------------
+//start game
+//-----------------------------------------------------------------
 game.init();
 game.loop();
