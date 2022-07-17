@@ -388,6 +388,82 @@ class Paddle extends Rect {
 }
 
 //=================================================================
+// Collider - static class to handle collision detection and resolulution
+//          throughout, resolve should be:
+//          0 - no resolution just return if collision
+//          1 - resolve by updating obj1 position
+//          2 - resolve by updating obj2 position
+//=================================================================
+class Collider {
+    static collide(obj1, obj2, resolve = 0){
+        const result = { hit: false, newPosOffset:{x: 0, y:0}, newVel:{x:0, y:0}};
+
+    }
+
+    static colCirclRect(circle, rectangle, result, resolve=0) {
+        if (rectangle instanceof DestructableRect) {
+            if (rectangle.isDestroyed()) {
+                return;
+            }
+        }
+        const cPos  = circle.getPosition();
+        const r     = circle.getRadius();
+        const rectW = rectangle.getWidth();
+        const rectH = rectangle.getHeight(); 
+        const min   = rectangle.getUpperLeft();
+        const max   = rectangle.getLowerRight();
+        
+        let closestPoint = {x:pos.x, y:pos.y};
+
+        if(closestPoint.x < min.x) closestPoint.x = min.x;
+        if(closestPoint.y < min.y) closestPoint.y = min.y;
+        if(closestPoint.x > max.x) closestPoint.x = max.x;
+        if(closestPoint.y > min.y) closestPoint.y = max.y;
+        
+        let len2CPsq = (pos.x-closestPoint.x)**2 + (pos.y-closestPoint.y)**2
+        if (len2CPsq <= r**2){
+            // collision
+            result.hit = true;
+            if(resolve === 0)
+                return;
+            // console.log(`typeof rect: ${rect instanceof Brick}`);//cp ${closestPoint.x}, ${closestPoint.y}    min ${min.x}, ${min.y}   max ${max.x}, ${max.y}`)
+            if (closestPoint.x === min.x || (closestPoint.x - min.x) / rectW < .1) { // hit on or very close to left side
+                // console.log(`hit brick on left ${this.vel.x} threshold : ${(closestPoint.x - min.x) / brickW}`);
+                result.newVel.x = circle.vel.x > 0 ? -circle.vel.x : circle.vel.x;
+                result.newPosOffset.x = r - min.x - cPos.x;
+            } else if (closestPoint.x === max.x || (max.x - closestPoint.x) / rectW < .1) { // hit on or very close to right side
+                // console.log(`hit brick on right ${this.vel.x} threshold : ${(max.x - closestPoint.x) / brickW}`);
+                result.newVel.x = circle.vel.x < 0 ? -circle.vel.x : circle.vel.x;
+                result.newPosOffset.x = r - cPos.x - max.x;
+            }
+            if (closestPoint.y === min.y || (closestPoint.y - min.y) / rectH < .1) { //hit on or very close to top
+                // console.log(`hit brick on top ${this.vel.y} threshold : ${(closestPoint.y - min.y) / brickH}`);
+                result.newVel.y = circle.vel.y > 0 ? -circle.vel.y : circle.vel.y;
+                result.newPosOffset.y = r - cPos.y - min.y;
+            } else if (closestPoint.y === max.y || (max.y - closestPoint.y) / rectH < .1) { //hit on or very close to bottom
+                // console.log(`hit brick on bottom ${this.vel.y} threshold : ${(max.y - closestPoint.y) / brickH}`);
+                result.newVel.y = circle.vel.y < 0 ? -circle.vel.y : circle.vel.y;
+                result.newPosOffset.y = r - max.y - cPos.y;
+            }
+            if (rectangle instanceof DestructableRect)
+                rectangle.setHitThisFrame();
+
+            if (rectangle instanceof Paddle) {
+                circle.vel.x += game.paddle.getAveVel();
+                if(circle.vel.x > .5) 
+                    circle.vel.x = .5;
+                if(circle.vel.x < -.5)
+                    circle.vel.x = -.5;
+            }
+        }
+        return pos;
+    }
+
+    static colRectRect(rect1, rect2, result, resolve = 0) {
+
+    }
+}
+//=================================================================
 // GameState - control what mode the game is in
 //=================================================================
 class GameState {
