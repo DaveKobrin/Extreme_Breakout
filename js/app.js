@@ -256,6 +256,8 @@ class Rect extends Entity {
     getUpperRight() { return { x: this.brCorner.x, y: this.ulCorner.y}; }
     getLowerLeft() { return { x: this.ulCorner.x, y: this.brCorner.y}; }
 
+    setColor(color) { this.color = color; }
+
     setPosition(posX, posY = this.pos.y) {
         this.pos.x = posX;
         this.pos.y = posY;
@@ -312,8 +314,33 @@ class DestructableRect extends Rect {
 // Brick - Destroyable block rectangle
 //================================================================
 class Brick extends DestructableRect {
-    constructor(posX = 0, posY = 0, width = 0, height = 0, health = 1, points = 1, color = '#00d') {
+
+    static colors = [  '#0d47a1',
+                '#1565c0',
+                '#1976d2',
+                '#1e88e5',
+                '#2196f3',
+                '#42a5f5',
+                '#64b5f6',
+                '#90caf9',
+                '#bbdefb',
+                '#e3f2fd'
+            ];
+    curColor = 0;
+
+    constructor(posX = 0, posY = 0, width = 0, height = 0, health = 1, points = 1, color = this.colors[0]) {
         super(posX, posY, width, height, health, points, color);
+        this.curColor = Brick.colors.indexOf(color);
+    }
+
+    static getColor(num) { return Brick.colors[num % Brick.colors.length]; }
+
+    update() {
+        if (this.hitThisFrame) {
+            this.curColor = (this.curColor - 1) % Brick.colors.length;
+            this.setColor( Brick.colors[this.curColor] ); 
+        }
+        super.update();
     }
 
 }
@@ -689,7 +716,7 @@ class Game {
         //create new bricks
         for (let i=0; i<4; i++) {
             for (let j=0; j<6; j++) {
-                this.bricks.push(new Brick(col + brickWidth * j + colPad * j, row + brickHeight * i + rowPad * i, brickWidth, brickHeight, this.level));
+                this.bricks.push(new Brick(col + brickWidth * j + colPad * j, row + brickHeight * i + rowPad * i, brickWidth, brickHeight, this.level,1,Brick.getColor(this.level - 1)));
             }
         }
 
