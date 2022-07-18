@@ -349,7 +349,7 @@ class Brick extends DestructableRect {
 // Alien - enemy class extends Rect - will fire bombs down at paddle
 //=================================================================
 class Alien extends DestructableRect {
-    image = '';
+    image = 'assets/alien.svg';
     maxVel = .5;
     maxBombChance = 0;
     bombChanceStep = 0;
@@ -395,6 +395,14 @@ class Alien extends DestructableRect {
             return true;
         }
         return false;
+    }
+
+    draw() {
+        if (!this.destroyed){
+            const myImage = new Image();
+            myImage.src = this.image;
+            vp.ctx.drawImage(myImage, this.ulCorner.x, this.ulCorner.y, this.w, this.h);
+        }
     }
 }
 
