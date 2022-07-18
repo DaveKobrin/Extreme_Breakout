@@ -110,15 +110,37 @@ class Ball extends Circle {
             newPos.y = this.getPosition().y + this.vel.y * dt;
             
             newPos = this.hitBoundry(newPos);
-            newPos = this.hitRect(newPos, game.paddle);
+
+            this.setPosition(newPos.x, newPos.y);
+
+            let colRes = Collider.collide(this, game.paddle, true);
+            newPos.x += colRes.newPosOffset.x;
+            newPos.y += colRes.newPosOffset.y;
+            if (colRes.hit) this.vel = colRes.newVel;
+
             for (const brick of game.bricks) {
-                newPos = this.hitRect(newPos, brick);
+                colRes = Collider.collide(this, brick, true);
+                newPos.x += colRes.newPosOffset.x;
+                newPos.y += colRes.newPosOffset.y;
+                if (colRes.hit) this.vel = colRes.newVel;
             }
+
             for (const alien of game.aliens) {
-                newPos = this.hitRect(newPos, alien);
+                colRes = Collider.collide(this, alien, true);
+                newPos.x += colRes.newPosOffset.x;
+                newPos.y += colRes.newPosOffset.y;
+                if (colRes.hit) this.vel = colRes.newVel;
             }
+
+            // newPos = this.hitRect(newPos, game.paddle);
+            // for (const brick of game.bricks) {
+            //     newPos = this.hitRect(newPos, brick);
+            // }
+            // for (const alien of game.aliens) {
+            //     newPos = this.hitRect(newPos, alien);
+            // }
         }
-console.log(`update ball vel ${this.vel.x}, ${this.vel.y}`)
+// console.log(`update ball vel ${this.vel.x}, ${this.vel.y}`)
         this.setPosition(newPos.x, newPos.y);
 
         if (newPos.y > vp.canvas.height + this.rad) {
@@ -143,59 +165,59 @@ console.log(`update ball vel ${this.vel.x}, ${this.vel.y}`)
         return pos;
     }
 
-    hitRect(pos, rect) {
-        if (rect instanceof DestructableRect)
-            if (rect.isDestroyed())
-                return pos;
+    // hitRect(pos, rect) {
+    //     if (rect instanceof DestructableRect)
+    //         if (rect.isDestroyed())
+    //             return pos;
 
-        const r     = this.getRadius();
-        const rectW = rect.getWidth();
-        const rectH = rect.getHeight(); 
-        const min   = rect.getUpperLeft();
-        const max   = rect.getLowerRight();
+    //     const r     = this.getRadius();
+    //     const rectW = rect.getWidth();
+    //     const rectH = rect.getHeight(); 
+    //     const min   = rect.getUpperLeft();
+    //     const max   = rect.getLowerRight();
         
-        let closestPoint = {x:pos.x, y:pos.y};
+    //     let closestPoint = {x:pos.x, y:pos.y};
 
-        if(closestPoint.x < min.x) closestPoint.x = min.x;
-        if(closestPoint.y < min.y) closestPoint.y = min.y;
-        if(closestPoint.x > max.x) closestPoint.x = max.x;
-        if(closestPoint.y > min.y) closestPoint.y = max.y;
+    //     if(closestPoint.x < min.x) closestPoint.x = min.x;
+    //     if(closestPoint.y < min.y) closestPoint.y = min.y;
+    //     if(closestPoint.x > max.x) closestPoint.x = max.x;
+    //     if(closestPoint.y > max.y) closestPoint.y = max.y;
         
-        let len2CPsq = (pos.x-closestPoint.x)**2 + (pos.y-closestPoint.y)**2
-        if (len2CPsq <= r**2){
-            // collision
-            // console.log(`typeof rect: ${rect instanceof Brick}`);//cp ${closestPoint.x}, ${closestPoint.y}    min ${min.x}, ${min.y}   max ${max.x}, ${max.y}`)
-            if (closestPoint.x === min.x || (closestPoint.x - min.x) / rectW < .1) { // hit on or very close to left side
-                // console.log(`hit brick on left ${this.vel.x} threshold : ${(closestPoint.x - min.x) / brickW}`);
-                this.vel.x = this.vel.x > 0 ? this.vel.x *= -1: this.vel.x;
-                pos.x = min.x - r;
-            } else if (closestPoint.x === max.x || (max.x - closestPoint.x) / rectW < .1) { // hit on or very close to right side
-                // console.log(`hit brick on right ${this.vel.x} threshold : ${(max.x - closestPoint.x) / brickW}`);
-                this.vel.x = this.vel.x < 0 ? this.vel.x *= -1: this.vel.x;
-                pos.x = max.x + r;
-            }
-            if (closestPoint.y === min.y || (closestPoint.y - min.y) / rectH < .1) { //hit on or very close to top
-                // console.log(`hit brick on top ${this.vel.y} threshold : ${(closestPoint.y - min.y) / brickH}`);
-                this.vel.y = this.vel.y > 0 ? this.vel.y *= -1: this.vel.y;
-                pos.y = min.y - r;
-            } else if (closestPoint.y === max.y || (max.y - closestPoint.y) / rectH < .1) { //hit on or very close to bottom
-                // console.log(`hit brick on bottom ${this.vel.y} threshold : ${(max.y - closestPoint.y) / brickH}`);
-                this.vel.y = this.vel.y < 0 ? this.vel.y *= -1: this.vel.y;
-                pos.y = max.y + r;
-            }
-            if (rect instanceof DestructableRect)
-                rect.setHitThisFrame();
+    //     let len2CPsq = (pos.x-closestPoint.x)**2 + (pos.y-closestPoint.y)**2
+    //     if (len2CPsq <= r**2){
+    //         // collision
+    //         // console.log(`typeof rect: ${rect instanceof Brick}`);//cp ${closestPoint.x}, ${closestPoint.y}    min ${min.x}, ${min.y}   max ${max.x}, ${max.y}`)
+    //         if (closestPoint.x === min.x || (closestPoint.x - min.x) / rectW < .1) { // hit on or very close to left side
+    //             // console.log(`hit brick on left ${this.vel.x} threshold : ${(closestPoint.x - min.x) / brickW}`);
+    //             this.vel.x = this.vel.x > 0 ? this.vel.x *= -1: this.vel.x;
+    //             pos.x = min.x - r;
+    //         } else if (closestPoint.x === max.x || (max.x - closestPoint.x) / rectW < .1) { // hit on or very close to right side
+    //             // console.log(`hit brick on right ${this.vel.x} threshold : ${(max.x - closestPoint.x) / brickW}`);
+    //             this.vel.x = this.vel.x < 0 ? this.vel.x *= -1: this.vel.x;
+    //             pos.x = max.x + r;
+    //         }
+    //         if (closestPoint.y === min.y || (closestPoint.y - min.y) / rectH < .1) { //hit on or very close to top
+    //             // console.log(`hit brick on top ${this.vel.y} threshold : ${(closestPoint.y - min.y) / brickH}`);
+    //             this.vel.y = this.vel.y > 0 ? this.vel.y *= -1: this.vel.y;
+    //             pos.y = min.y - r;
+    //         } else if (closestPoint.y === max.y || (max.y - closestPoint.y) / rectH < .1) { //hit on or very close to bottom
+    //             // console.log(`hit brick on bottom ${this.vel.y} threshold : ${(max.y - closestPoint.y) / brickH}`);
+    //             this.vel.y = this.vel.y < 0 ? this.vel.y *= -1: this.vel.y;
+    //             pos.y = max.y + r;
+    //         }
+    //         if (rect instanceof DestructableRect)
+    //             rect.setHitThisFrame();
 
-            if (rect instanceof Paddle) {
-                this.vel.x += game.paddle.getAveVel();
-                if(this.vel.x > .5) 
-                    this.vel.x = .5;
-                if(this.vel.x < -.5)
-                    this.vel.x = -.5;
-            }
-        }
-        return pos;
-    }
+    //         if (rect instanceof Paddle) {
+    //             this.vel.x += game.paddle.getAveVel();
+    //             if(this.vel.x > .5) 
+    //                 this.vel.x = .5;
+    //             if(this.vel.x < -.5)
+    //                 this.vel.x = -.5;
+    //         }
+    //     }
+    //     return pos;
+    // }
 
 }
 
@@ -357,6 +379,8 @@ class Paddle extends Rect {
     normalWidth = 0;
     averageVel = 0;
     vels = [];
+    stunned = false;
+    stunTimeoutID = null;
 
     constructor(posX = 0, posY = 0, width = 0, height = 0, color = '#dd1') {
         super(posX, posY, width, height, color);
@@ -368,16 +392,19 @@ class Paddle extends Rect {
     update(dt) {
         const keys = game.getControlKeys();
         let curVel = 0;
-        if (keys.ArrowLeft) {
-            curVel -= this.maxVel; 
-            let newX = this.getPosition().x + curVel * dt;
-            newX = newX > this.getHalfSize().x ? newX : this.getHalfSize().x;
-            this.setPosition(newX);
-        } else if (keys.ArrowRight) {
-            curVel += this.maxVel;
-            let newX = this.getPosition().x + curVel * dt;
-            newX = newX < vp.canvas.width - this.getHalfSize().x ? newX : vp.canvas.width - this.getHalfSize().x;
-            this.setPosition(newX);
+        
+        if(!this.stunned) {
+            if (keys.ArrowLeft) {
+                curVel -= this.maxVel; 
+                let newX = this.getPosition().x + curVel * dt;
+                newX = newX > this.getHalfSize().x ? newX : this.getHalfSize().x;
+                this.setPosition(newX);
+            } else if (keys.ArrowRight) {
+                curVel += this.maxVel;
+                let newX = this.getPosition().x + curVel * dt;
+                newX = newX < vp.canvas.width - this.getHalfSize().x ? newX : vp.canvas.width - this.getHalfSize().x;
+                this.setPosition(newX);
+            }
         }
 
         this.vels.push(curVel);
@@ -390,17 +417,20 @@ class Paddle extends Rect {
 //=================================================================
 // Collider - static class to handle collision detection and resolulution
 //          throughout, resolve should be:
-//          0 - no resolution just return if collision
-//          1 - resolve by updating obj1 position
-//          2 - resolve by updating obj2 position
+//          false - no resolution just return if collision
+//          true - resolve by updating the circle's position, this game only needs to resolve ball collisions
 //=================================================================
 class Collider {
-    static collide(obj1, obj2, resolve = 0){
+    static collide(obj1, obj2, resolve = false){
         const result = { hit: false, newPosOffset:{x: 0, y:0}, newVel:{x:0, y:0}};
+        if (obj1 instanceof Circle && obj2 instanceof Rect)     Collider.colCirclRect(obj1, obj2, result, resolve);
+        if (obj1 instanceof Rect && obj2 instanceof Circle)     Collider.colCirclRect(obj2, obj1, result, resolve);
 
+
+        return result;
     }
 
-    static colCirclRect(circle, rectangle, result, resolve=0) {
+    static colCirclRect(circle, rectangle, result, resolve=false) {
         if (rectangle instanceof DestructableRect) {
             if (rectangle.isDestroyed()) {
                 return;
@@ -413,53 +443,54 @@ class Collider {
         const min   = rectangle.getUpperLeft();
         const max   = rectangle.getLowerRight();
         
-        let closestPoint = {x:pos.x, y:pos.y};
+        let closestPoint = {x:cPos.x, y:cPos.y};
 
         if(closestPoint.x < min.x) closestPoint.x = min.x;
         if(closestPoint.y < min.y) closestPoint.y = min.y;
         if(closestPoint.x > max.x) closestPoint.x = max.x;
-        if(closestPoint.y > min.y) closestPoint.y = max.y;
+        if(closestPoint.y > max.y) closestPoint.y = max.y;
         
-        let len2CPsq = (pos.x-closestPoint.x)**2 + (pos.y-closestPoint.y)**2
+        let len2CPsq = (cPos.x-closestPoint.x)**2 + (cPos.y-closestPoint.y)**2
         if (len2CPsq <= r**2){
             // collision
             result.hit = true;
             if(resolve === 0)
                 return;
+                result.newVel = circle.vel;
             // console.log(`typeof rect: ${rect instanceof Brick}`);//cp ${closestPoint.x}, ${closestPoint.y}    min ${min.x}, ${min.y}   max ${max.x}, ${max.y}`)
             if (closestPoint.x === min.x || (closestPoint.x - min.x) / rectW < .1) { // hit on or very close to left side
                 // console.log(`hit brick on left ${this.vel.x} threshold : ${(closestPoint.x - min.x) / brickW}`);
                 result.newVel.x = circle.vel.x > 0 ? -circle.vel.x : circle.vel.x;
-                result.newPosOffset.x = r - min.x - cPos.x;
+                result.newPosOffset.x = r - (min.x - cPos.x);
             } else if (closestPoint.x === max.x || (max.x - closestPoint.x) / rectW < .1) { // hit on or very close to right side
                 // console.log(`hit brick on right ${this.vel.x} threshold : ${(max.x - closestPoint.x) / brickW}`);
                 result.newVel.x = circle.vel.x < 0 ? -circle.vel.x : circle.vel.x;
-                result.newPosOffset.x = r - cPos.x - max.x;
+                result.newPosOffset.x = r - (cPos.x - max.x);
             }
             if (closestPoint.y === min.y || (closestPoint.y - min.y) / rectH < .1) { //hit on or very close to top
                 // console.log(`hit brick on top ${this.vel.y} threshold : ${(closestPoint.y - min.y) / brickH}`);
                 result.newVel.y = circle.vel.y > 0 ? -circle.vel.y : circle.vel.y;
-                result.newPosOffset.y = r - cPos.y - min.y;
+                result.newPosOffset.y = r - (min.y - cPos.y);
             } else if (closestPoint.y === max.y || (max.y - closestPoint.y) / rectH < .1) { //hit on or very close to bottom
                 // console.log(`hit brick on bottom ${this.vel.y} threshold : ${(max.y - closestPoint.y) / brickH}`);
                 result.newVel.y = circle.vel.y < 0 ? -circle.vel.y : circle.vel.y;
-                result.newPosOffset.y = r - max.y - cPos.y;
+                result.newPosOffset.y = r - (cPos.y -  max.y);
             }
             if (rectangle instanceof DestructableRect)
                 rectangle.setHitThisFrame();
 
             if (rectangle instanceof Paddle) {
-                circle.vel.x += game.paddle.getAveVel();
-                if(circle.vel.x > .5) 
-                    circle.vel.x = .5;
-                if(circle.vel.x < -.5)
-                    circle.vel.x = -.5;
+                result.newVel.x += game.paddle.getAveVel();
+                if(result.newVel.x > .5) 
+                    result.newVel.x = .5;
+                if(result.newVel.x < -.5)
+                    result.newVel.x = -.5;
             }
         }
-        return pos;
+        return;
     }
 
-    static colRectRect(rect1, rect2, result, resolve = 0) {
+    static colRectRect(rect1, rect2, result, resolve = false) {
 
     }
 }
@@ -710,7 +741,7 @@ class Game {
                     if (!alien.isDestroyed())
                         alien.update(dt);
                 }
-                
+
                 for (const bomb of this.bombs) {
                     bomb.update(dt);
                 }
