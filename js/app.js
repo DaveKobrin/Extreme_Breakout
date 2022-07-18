@@ -392,7 +392,7 @@ class Paddle extends Rect {
     update(dt) {
         const keys = game.getControlKeys();
         let curVel = 0;
-        
+
         if(!this.stunned) {
             if (keys.ArrowLeft) {
                 curVel -= this.maxVel; 
@@ -411,6 +411,24 @@ class Paddle extends Rect {
         if (this.vels.length > 10)
             this.vels.shift();
         this.averageVel = this.vels.reduce((acc, el) => acc + el)/this.vels.length;
+
+        //check collisions with bombs and power-ups
+        for (const bomb of game.bombs) {
+            let hit = Collider.collide( this, bomb, false).hit;
+            if (hit) {
+                this.hitBomb();
+                break;  // exit early additional hits would not change anything
+            }
+        }
+
+    }
+
+    hitBomb() {
+        if(this.stunTimeoutID !== null)
+            clearTimeout(this.stunTimeoutID);
+
+        this.stunned = true;
+        this.stunTimeoutID = setTimeout( ()=> { game.paddle.stunned = false; game.paddle.stunTimeoutID = null; }, 2000);
     }
 }
 
@@ -454,27 +472,39 @@ class Collider {
         if (len2CPsq <= r**2){
             // collision
             result.hit = true;
-            if(resolve === 0)
+            if(!resolve)
                 return;
-                result.newVel = circle.vel;
+                let minOff = { x: 0, y: 0 };
+                let maxOff = { x: 0, y: 0 };
+            if(closestPoint.x === cPos.x && closestPoint.y === cPos.y) {
+                minOff = { x: closestPoint.x - min.x, y: closestPoint.y - min.y };
+                maxOff = { x: max.x - closestPoint.x, y: max.y - closestPoint.y };
+                (minOff.x < maxOff.x) ? maxOff.x = 0 : minOff.x = 0;
+                (minOff.y < maxOff.y) ? maxOff.y = 0 : minOff.y = 0;
+                if(minOff.x > r) minOff.x = 0;
+                if(minOff.y > r) minOff.y = 0;
+                if(maxOff.x > r) maxOff.x = 0;
+                if(maxOff.y > r) maxOff.y = 0;
+            }    
+            result.newVel = circle.vel;
             // console.log(`typeof rect: ${rect instanceof Brick}`);//cp ${closestPoint.x}, ${closestPoint.y}    min ${min.x}, ${min.y}   max ${max.x}, ${max.y}`)
-            if (closestPoint.x === min.x || (closestPoint.x - min.x) / rectW < .1) { // hit on or very close to left side
+            if (closestPoint.x === min.x || (closestPoint.x - min.x) / rectW < .1 || minOff.x !== 0)  { // hit on or very close to left side
                 // console.log(`hit brick on left ${this.vel.x} threshold : ${(closestPoint.x - min.x) / brickW}`);
                 result.newVel.x = circle.vel.x > 0 ? -circle.vel.x : circle.vel.x;
-                result.newPosOffset.x = r - (min.x - cPos.x);
-            } else if (closestPoint.x === max.x || (max.x - closestPoint.x) / rectW < .1) { // hit on or very close to right side
+                result.newPosOffset.x = -r - (min.x - cPos.x) - minOff.x;
+            } else if (closestPoint.x === max.x || (max.x - closestPoint.x) / rectW < .1 || maxOff.x !== 0) { // hit on or very close to right side
                 // console.log(`hit brick on right ${this.vel.x} threshold : ${(max.x - closestPoint.x) / brickW}`);
                 result.newVel.x = circle.vel.x < 0 ? -circle.vel.x : circle.vel.x;
-                result.newPosOffset.x = r - (cPos.x - max.x);
+                result.newPosOffset.x = r - (cPos.x - max.x) + maxOff.x;
             }
-            if (closestPoint.y === min.y || (closestPoint.y - min.y) / rectH < .1) { //hit on or very close to top
+            if (closestPoint.y === min.y || (closestPoint.y - min.y) / rectH < .1 || minOff.y !== 0) { //hit on or very close to top
                 // console.log(`hit brick on top ${this.vel.y} threshold : ${(closestPoint.y - min.y) / brickH}`);
                 result.newVel.y = circle.vel.y > 0 ? -circle.vel.y : circle.vel.y;
-                result.newPosOffset.y = r - (min.y - cPos.y);
-            } else if (closestPoint.y === max.y || (max.y - closestPoint.y) / rectH < .1) { //hit on or very close to bottom
+                result.newPosOffset.y = -r - (min.y - cPos.y) - minOff.y;
+            } else if (closestPoint.y === max.y || (max.y - closestPoint.y) / rectH < .1 || maxOff.y !== 0) { //hit on or very close to bottom
                 // console.log(`hit brick on bottom ${this.vel.y} threshold : ${(max.y - closestPoint.y) / brickH}`);
                 result.newVel.y = circle.vel.y < 0 ? -circle.vel.y : circle.vel.y;
-                result.newPosOffset.y = r - (cPos.y -  max.y);
+                result.newPosOffset.y = r - (cPos.y -  max.y) + maxOff.y;
             }
             if (rectangle instanceof DestructableRect)
                 rectangle.setHitThisFrame();
