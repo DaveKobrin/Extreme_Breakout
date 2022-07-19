@@ -559,6 +559,23 @@ class Collider {
 
     }
 }
+
+//=================================================================
+// Score - holds a players name and score for the leaderboard
+//=================================================================
+class Score {
+    name = '';
+    points = 0;
+
+    constructor(name, points) {
+        this.name = name;
+        this.points = points;
+    }
+
+    getName() { return this.name; }
+    getScore() { return this.points; }
+}
+
 //=================================================================
 // GameState - control what mode the game is in
 //=================================================================
@@ -599,6 +616,7 @@ class GameState {
                 break;
             
             case 'highScores':
+                this.showHighScores();
                 this.instructions = false;
                 this.highScores = true;
                 this.gamePlay = false;
@@ -637,6 +655,14 @@ class GameState {
                 return;
         }
     }
+
+    showHighScores(){
+        const domElem = document.querySelector('#scoresUL');
+        let str = '';
+        for (const score of game.scores)
+            str += `<li class="flexContainer"><span class="initials justLeft">${score.getName()}</span><span class="scores justRight">${score.getScore()}</span></li>`;
+        domElem.innerHTML = str;
+    }
 }
 //=================================================================
 // Game - the main class for the game
@@ -646,6 +672,7 @@ class Game {
     balls = [];
     aliens = [];
     bombs = [];
+    scores = [];
     paddle = null;
     bgColor = '#222';
     lastUpdateTime = 0;
@@ -673,6 +700,9 @@ class Game {
         this.score = 0;
         this.lives = 3;
         this.gameState = new GameState();
+
+        // for ( let i=0; i<10; i++)
+        //     this.scores.push(new Score('testing', 10000));
     }
 
     getControlKeys() { return this.controlKeys; }
@@ -784,7 +814,15 @@ class Game {
                         this.balls.push(new Ball(10));
                     } else {
                         // game over
-                        alert('GAME OVER!')
+
+                        if(this.scores.length < 10 || this.score > this.scores[this.scores.length-1]) {
+                            let name = prompt('Congratulations, you set a new high score! \n Please enter your name...');
+                            this.scores.push(new Score(name, this.score));
+                            this.scores.sort((a,b)=>{ return b.points - a.points });
+                            if (this.scores.length > 10) this.scores.pop();
+                        } else {
+                            alert('GAME OVER! \n Why not try again?');
+                        }
                         this.gameState.setState('highScores');
                     }
                 }
