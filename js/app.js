@@ -260,17 +260,48 @@ class DestructableRect extends Rect {
 //================================================================
 class Brick extends DestructableRect {
 
-    static colors = [  '#0d47a1',
-                '#1565c0',
-                '#1976d2',
-                '#1e88e5',
-                '#2196f3',
-                '#42a5f5',
-                '#64b5f6',
-                '#90caf9',
-                '#bbdefb',
-                '#e3f2fd'
-            ];
+    static colors = [ '#17518e',    //teal monochrome palette
+                    '#1367a1',
+                    '#0f7db4',
+                    '#0c93c7',
+                    '#08a8d9',
+                    '#04beec',
+                    '#00d4ff'
+                ];
+    // static colors = [ '#FF006F',    //fuscia to light blue palette
+    //                 '#E3177F',
+    //                 '#C62E8F',
+    //                 '#AA459F',
+    //                 '#8E5CAF',
+    //                 '#7174BF',
+    //                 '#558BCF',
+    //                 '#39A2DF',
+    //                 '#1CB9EF',
+    //                 '#00D0FF'
+    //             ];
+
+    // static colors = [ '#df03a8', //fuscia to purple palette
+    //                 '#ce03a0',
+    //                 '#bd028a',
+    //                 '#ac0291',
+    //                 '#9b028a',
+    //                 '#8a0182',
+    //                 '#79017b',
+    //                 '#680173',
+    //                 '#57006c',
+    //                 '#460064'
+    //             ];
+    // static colors = [ '#0d47a1', //blue monochromatic palette
+    //             '#1565c0',
+    //             '#1976d2',
+    //             '#1e88e5',
+    //             '#2196f3',
+    //             '#42a5f5',
+    //             '#64b5f6',
+    //             '#90caf9',
+    //             '#bbdefb',
+    //             '#e3f2fd'
+    //         ];
     curColor = 0;
 
     constructor(posX = 0, posY = 0, width = 0, height = 0, health = 1, points = 1, color = this.colors[0]) {
@@ -491,6 +522,7 @@ class Collider {
 
             if (rectangle instanceof Paddle) {
                 result.newVel.x += game.paddle.getAveVel();
+                result.newVel.y = (result.newVel.y > 0) ? (circle.maxVelY + .02 * game.level) : -(circle.maxVelY + .02 * game.level);  
                 if(result.newVel.x > .5) 
                     result.newVel.x = .5;
                 if(result.newVel.x < -.5)
@@ -605,7 +637,7 @@ class GameState {
         const domElem = document.querySelector('#scoresUL');
         let str = '';
         for (const score of game.scores)
-            str += `<li class="flexContainer"><span class="initials justLeft">${score.getName()}</span><span class="scores justRight">${score.getScore()}</span></li>`;
+            str += `<li class="flexContainer shadow${score === game.currentScore?' current':''}"><span class="initials justLeft">${score.getName()}</span><span class="scores justRight">${score.getScore()}</span></li>`;
         domElem.innerHTML = str;
     }
 }
@@ -618,6 +650,7 @@ class Game {
     aliens = [];
     bombs = [];
     scores = [];
+    currentScore = null;
     paddle = null;
     bgColor = '#222';
     lastUpdateTime = 0;
@@ -666,11 +699,12 @@ class Game {
         this.lastUpdateTime = Date.now();
 
         for (const key of Object.keys(this.controlKeys)) { this.controlKeys[key] = false; }
-        
+
         this.gameState.setState('instructions');
         this.level = 1;
         this.score = 0;
         this.lives = 3;
+        this.currentScore = null;
 
         while (this.balls.length > 0)
             this.balls.pop();
@@ -762,7 +796,8 @@ class Game {
                         // game over
                         if((this.scores.length < 10) || (this.score > this.scores[this.scores.length-1].getScore())) {
                             let name = prompt('Congratulations, you set a new high score! \n Please enter your name...');
-                            this.scores.push(new Score(name, this.score));
+                            this.currentScore = new Score(name, this.score);
+                            this.scores.push(this.currentScore);
                             this.scores.sort((a,b)=>{ return b.points - a.points });
                             if (this.scores.length > 10) this.scores.pop();
                         } else {

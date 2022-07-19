@@ -1,11 +1,48 @@
 body{
-    background: radial-gradient(farthest-corner at 40px 40px, #ccc 0%, #333 100%);
+    /* background: radial-gradient(farthest-corner at 40px 40px, #ccc 0%, #333 100%); */
+    background-image: url("../assets/retro-galaxy-wallpaper.jpg");
+    background-size: cover;
     display: flex;
     justify-content: center;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    color:#ddd;
 }
 
 div {
     text-align: center;
+}
+
+p {
+    text-align: left;
+}
+
+li {
+    list-style: none;
+    margin: 0 4vw 0 0;
+}
+
+.modal {
+    width: 50vw;
+    padding: 30px;
+    background-color: #222;
+    color: #ddd;
+    font-size: 1.5rem;
+    border: 5px solid #ddd;
+    border-radius: 15px;
+}
+
+.shadow {
+    background-color: rgba(0, 0, 0, .3);
+    margin: 5px;
+    padding: 3px 15px;
+    border-radius: 5px;
+}
+
+.current {
+    font-size: 2.3rem;
+    color: #ee6;
 }
 
 .hidden {
