@@ -164,61 +164,6 @@ class Ball extends Circle {
         }
         return pos;
     }
-
-    // hitRect(pos, rect) {
-    //     if (rect instanceof DestructableRect)
-    //         if (rect.isDestroyed())
-    //             return pos;
-
-    //     const r     = this.getRadius();
-    //     const rectW = rect.getWidth();
-    //     const rectH = rect.getHeight(); 
-    //     const min   = rect.getUpperLeft();
-    //     const max   = rect.getLowerRight();
-        
-    //     let closestPoint = {x:pos.x, y:pos.y};
-
-    //     if(closestPoint.x < min.x) closestPoint.x = min.x;
-    //     if(closestPoint.y < min.y) closestPoint.y = min.y;
-    //     if(closestPoint.x > max.x) closestPoint.x = max.x;
-    //     if(closestPoint.y > max.y) closestPoint.y = max.y;
-        
-    //     let len2CPsq = (pos.x-closestPoint.x)**2 + (pos.y-closestPoint.y)**2
-    //     if (len2CPsq <= r**2){
-    //         // collision
-    //         // console.log(`typeof rect: ${rect instanceof Brick}`);//cp ${closestPoint.x}, ${closestPoint.y}    min ${min.x}, ${min.y}   max ${max.x}, ${max.y}`)
-    //         if (closestPoint.x === min.x || (closestPoint.x - min.x) / rectW < .1) { // hit on or very close to left side
-    //             // console.log(`hit brick on left ${this.vel.x} threshold : ${(closestPoint.x - min.x) / brickW}`);
-    //             this.vel.x = this.vel.x > 0 ? this.vel.x *= -1: this.vel.x;
-    //             pos.x = min.x - r;
-    //         } else if (closestPoint.x === max.x || (max.x - closestPoint.x) / rectW < .1) { // hit on or very close to right side
-    //             // console.log(`hit brick on right ${this.vel.x} threshold : ${(max.x - closestPoint.x) / brickW}`);
-    //             this.vel.x = this.vel.x < 0 ? this.vel.x *= -1: this.vel.x;
-    //             pos.x = max.x + r;
-    //         }
-    //         if (closestPoint.y === min.y || (closestPoint.y - min.y) / rectH < .1) { //hit on or very close to top
-    //             // console.log(`hit brick on top ${this.vel.y} threshold : ${(closestPoint.y - min.y) / brickH}`);
-    //             this.vel.y = this.vel.y > 0 ? this.vel.y *= -1: this.vel.y;
-    //             pos.y = min.y - r;
-    //         } else if (closestPoint.y === max.y || (max.y - closestPoint.y) / rectH < .1) { //hit on or very close to bottom
-    //             // console.log(`hit brick on bottom ${this.vel.y} threshold : ${(max.y - closestPoint.y) / brickH}`);
-    //             this.vel.y = this.vel.y < 0 ? this.vel.y *= -1: this.vel.y;
-    //             pos.y = max.y + r;
-    //         }
-    //         if (rect instanceof DestructableRect)
-    //             rect.setHitThisFrame();
-
-    //         if (rect instanceof Paddle) {
-    //             this.vel.x += game.paddle.getAveVel();
-    //             if(this.vel.x > .5) 
-    //                 this.vel.x = .5;
-    //             if(this.vel.x < -.5)
-    //                 this.vel.x = -.5;
-    //         }
-    //     }
-    //     return pos;
-    // }
-
 }
 
 //================================================================
@@ -702,7 +647,7 @@ class Game {
         this.gameState = new GameState();
 
         // for ( let i=0; i<10; i++)
-        //     this.scores.push(new Score('testing', 10000));
+        //     this.scores.push(new Score('testing', 0));
     }
 
     getControlKeys() { return this.controlKeys; }
@@ -732,8 +677,7 @@ class Game {
         this.loadLevel();
 
         this.balls.push(new Ball(10));
-        this.paddle = new Paddle(vp.canvas.width / 2, vp.canvas.height - 20, 120, 20);
-        // this.bricks.push(new Brick( 250, 250, 100, 40));
+        this.paddle = new Paddle(vp.canvas.width / 2, vp.canvas.height - 20, 120, 20);   
     }
 
     loadLevel() {
@@ -814,8 +758,7 @@ class Game {
                         this.balls.push(new Ball(10));
                     } else {
                         // game over
-
-                        if(this.scores.length < 10 || this.score > this.scores[this.scores.length-1]) {
+                        if((this.scores.length < 10) || (this.score > this.scores[this.scores.length-1].getScore())) {
                             let name = prompt('Congratulations, you set a new high score! \n Please enter your name...');
                             this.scores.push(new Score(name, this.score));
                             this.scores.sort((a,b)=>{ return b.points - a.points });
