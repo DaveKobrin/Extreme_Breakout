@@ -665,6 +665,8 @@ class Game {
         paused = true;
         this.lastUpdateTime = Date.now();
 
+        for (const key of Object.keys(this.controlKeys)) { this.controlKeys[key] = false; }
+        
         this.gameState.setState('instructions');
         this.level = 1;
         this.score = 0;
