@@ -116,20 +116,32 @@ class Ball extends Circle {
             let colRes = Collider.collide(this, game.paddle, true);
             newPos.x += colRes.newPosOffset.x;
             newPos.y += colRes.newPosOffset.y;
-            if (colRes.hit) this.vel = colRes.newVel;
+            if (colRes.hit) { //paddle hit
+                this.vel = colRes.newVel;
+                // audioElems[0].currentTime = 0;
+                // audioElems[0].play();
+                SfxManager.play('ballRebound');
+            }
 
             for (const brick of game.bricks) {
                 colRes = Collider.collide(this, brick, true);
                 newPos.x += colRes.newPosOffset.x;
                 newPos.y += colRes.newPosOffset.y;
-                if (colRes.hit) this.vel = colRes.newVel;
+                if (colRes.hit) {
+                    this.vel = colRes.newVel;
+                }
             }
 
             for (const alien of game.aliens) {
                 colRes = Collider.collide(this, alien, true);
                 newPos.x += colRes.newPosOffset.x;
                 newPos.y += colRes.newPosOffset.y;
-                if (colRes.hit) this.vel = colRes.newVel;
+                if (colRes.hit) {
+                    this.vel = colRes.newVel;
+                    // audioElems[8].currentTime = 0;
+                    // audioElems[8].play();
+                    SfxManager.play('alienDeath');
+                }
             }
 
             // newPos = this.hitRect(newPos, game.paddle);
@@ -151,17 +163,28 @@ class Ball extends Circle {
     }
 
     hitBoundry(pos) {
+        let hit = false;
+
         if(pos.x < this.getRadius()) {
             pos.x = this.getRadius();
             this.vel.x *= -1;
+            hit = true;
         } else if (pos.x + this.getRadius() > vp.canvas.width) {
             pos.x = vp.canvas.width - this.getRadius();
             this.vel.x *= -1;
+            hit = true;
         }
         if (pos.y < this.getRadius()) { 
             pos.y = this.getRadius();
             this.vel.y *= -1;
+            hit = true;
         }
+        if (hit){ //play sfx
+            // audioElems[0].currentTime = 0;
+            // audioElems[0].play();
+            SfxManager.play('ballRebound');
+        }
+
         return pos;
     }
 }
@@ -312,11 +335,23 @@ class Brick extends DestructableRect {
     static getColor(num) { return Brick.colors[num % Brick.colors.length]; }
 
     update() {
-        if (this.hitThisFrame) {
+        const hit = this.hitThisFrame;
+        super.update();
+
+        if (hit) {
             this.curColor = (this.curColor - 1) % Brick.colors.length;
             this.setColor( Brick.colors[this.curColor] ); 
+
+            if (this.isDestroyed()) {
+                // audioElems[6].currentTime = 0;
+                // audioElems[6].play();
+                SfxManager.play('brickBreak');
+            } else {
+                // audioElems[0].currentTime = 0;
+                // audioElems[0].play();
+                SfxManager.play('ballRebound')
+            }
         }
-        super.update();
     }
 
 }
@@ -358,6 +393,9 @@ class Alien extends DestructableRect {
         
         if (this.shouldAttack()) {
             game.bombs.push(new Bomb(10, this.getPosition().x, this.getPosition().y, '#ad1'));
+            // audioElems[2].currentTime = 0;
+            // audioElems[2].play();
+            SfxManager.play('bombDrop');
         }
         // console.log(`curVel: ${curVel}  newX: ${newX}`);
     }
@@ -435,11 +473,21 @@ class Paddle extends Rect {
     }
 
     hitBomb() {
-        if(this.stunTimeoutID !== null)
+        if(this.stunTimeoutID !== null) {
             clearTimeout(this.stunTimeoutID);
+            // audioElems[1].currentTime = 0;
+            SfxManager.stop('paddleStun');
+        }
 
         this.stunned = true;
-        this.stunTimeoutID = setTimeout( ()=> { game.paddle.stunned = false; game.paddle.stunTimeoutID = null; }, 2000);
+        // audioElems[1].play();
+        SfxManager.play('paddleStun');
+        this.stunTimeoutID = setTimeout( ()=> { 
+            // audioElems[1].pause();
+            // audioElems[1].currentTime = 0;
+            SfxManager.stop('paddleStun');
+            game.paddle.stunned = false;
+            game.paddle.stunTimeoutID = null; }, 2000);
     }
 }
 
@@ -533,6 +581,7 @@ class Collider {
     }
 
     static colRectRect(rect1, rect2, result, resolve = false) {
+        // collision detection between two rectangles
 
     }
 }
@@ -880,6 +929,10 @@ class Game {
     }
 
     keyDownEvent(e) {
+        if (e.code === 'KeyS')    testAudio(0);
+        if (e.code === 'KeyA')    testAudio(-1);
+        if (e.code === 'KeyD')    testAudio(1);
+
         if(!Object.keys(this.controlKeys).includes(e.code))
             return;
         this.controlKeys[e.code] = true;
@@ -890,6 +943,68 @@ class Game {
             return;
         this.controlKeys[e.code] = false;
     }
+
+}
+
+//=================================================================
+// Sound - holds a sound asset
+//=================================================================
+class Sound {
+    fileName = '';
+    soundID = '';
+}
+
+//=================================================================
+// SfxManager - manage playing audio sfx
+//=================================================================
+class SfxManager {
+    static sfxAssets = {
+        ballRebound:  "./assets/sounds/RetroBeeep20.wav",
+        paddleStun:   "./assets/sounds/RetroElectric02.wav",
+        bombDrop:     "./assets/sounds/RetroEventWrongSimple03.wav",
+        brickBreak:   "./assets/sounds/RetroFootStep03.wav",
+        alienDeath:   "./assets/sounds/RetroImpactMetal36.wav",
+        powerUp:      "./assets/sounds/RetroWeaponReloadPlasma06.wav"
+    }
+
+    static sfxVolumes = {
+        ballRebound:    .6,
+        paddleStun:     .6,
+        bombDrop:       .6,
+        brickBreak:      1,
+        alienDeath:     .6,
+        powerUp:        .8,
+    }
+
+    static sfxSounds = {}
+
+    static {
+        for(const key of Object.keys(this.sfxAssets)) {
+            this.sfxSounds[key] = new Audio(this.sfxAssets[key]);
+            this.sfxSounds[key].volume = this.sfxVolumes[key];
+        }
+    }
+
+    static play(target) {
+        this.sfxSounds[target].currentTime = 0;
+        this.sfxSounds[target].play();
+    }
+
+    static stop(target) {
+        this.sfxSounds[target].pause();
+        this.sfxSounds[target].currentTime = 0;
+    }
+
+    static pause(target) {
+        this.sfxSounds[target].pause();
+    }
+
+    static resume(target) {
+        this.sfxSounds[target].play();
+    }
+}
+    
+const testAudio = (step) => {
 
 }
 

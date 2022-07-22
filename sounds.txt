@@ -1,0 +1,20 @@
+-rw-r--r-- 1 dkobrin dkobrin   17104 Jul 19 21:15 assets/sounds/RetroBeeep20.wav
+-rw-r--r-- 1 dkobrin dkobrin  638980 Jul 19 21:15 assets/sounds/RetroElectric02.wav
+-rw-r--r-- 1 dkobrin dkobrin   60210 Jul 19 21:15 assets/sounds/RetroEventWrongSimple03.wav
+-rw-r--r-- 1 dkobrin dkobrin  163952 Jul 19 21:15 assets/sounds/RetroExplosionShort01.wav
+-rw-r--r-- 1 dkobrin dkobrin  160860 Jul 19 21:15 assets/sounds/RetroExplosionShort15.wav
+-rw-r--r-- 1 dkobrin dkobrin 1048340 Jul 19 21:15 assets/sounds/RetroFallingWater07.wav
+-rw-r--r-- 1 dkobrin dkobrin   19612 Jul 19 21:15 assets/sounds/RetroFootStep03.wav
+-rw-r--r-- 1 dkobrin dkobrin  390544 Jul 19 21:15 assets/sounds/RetroImpact20.wav
+-rw-r--r-- 1 dkobrin dkobrin  220464 Jul 19 21:15 assets/sounds/RetroImpactMetal36.wav
+-rw-r--r-- 1 dkobrin dkobrin   59332 Jul 19 21:15 assets/sounds/RetroNegativeShort23.wav
+-rw-r--r-- 1 dkobrin dkobrin  252160 Jul 19 21:15 assets/sounds/RetroWeaponLaser03.wav
+-rw-r--r-- 1 dkobrin dkobrin  130840 Jul 19 21:15 assets/sounds/RetroWeaponReloadPlasma06.wav
+
+
+        ballRebound:  "./assets/sounds/RetroBeeep20.wav",
+        paddleStun:   "./assets/sounds/RetroElectric02.wav",
+        bombDrop:     "./assets/sounds/RetroEventWrongSimple03.wav",
+        brickBreak:   "./assets/sounds/RetroFootStep03.wav",
+        alienDeath:   "./assets/sounds/RetroImpactMetal36.wav",
+        powerUp:      "./assets/sounds/RetroWeaponReloadPlasma06.wav"
