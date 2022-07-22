@@ -929,9 +929,13 @@ class Game {
     }
 
     keyDownEvent(e) {
-        if (e.code === 'KeyS')    testAudio(0);
-        if (e.code === 'KeyA')    testAudio(-1);
-        if (e.code === 'KeyD')    testAudio(1);
+//         if (e.code === 'KeyS')    testAudio(0);
+//         if (e.code === 'KeyA')    testAudio(-1);
+//         if (e.code === 'KeyD')    testAudio(1);
+// console.log(e.code);
+
+        if (e.code === 'ArrowUp')   SfxManager.volumeUp();
+        if (e.code === 'ArrowDown') SfxManager.volumeDown();
 
         if(!Object.keys(this.controlKeys).includes(e.code))
             return;
@@ -967,13 +971,22 @@ class SfxManager {
         powerUp:      "./assets/sounds/RetroWeaponReloadPlasma06.wav"
     }
 
+    static sfxMaxVolumes = {
+        ballRebound:    .6,
+        paddleStun:     .6,
+        bombDrop:       .6,
+        brickBreak:      1,
+        alienDeath:     .6,
+        powerUp:        .8
+    }
+
     static sfxVolumes = {
         ballRebound:    .6,
         paddleStun:     .6,
         bombDrop:       .6,
         brickBreak:      1,
         alienDeath:     .6,
-        powerUp:        .8,
+        powerUp:        .8
     }
 
     static sfxSounds = {}
@@ -1001,6 +1014,20 @@ class SfxManager {
 
     static resume(target) {
         this.sfxSounds[target].play();
+    }
+
+    static volumeUp() {
+        for (const key of Object.keys(this.sfxSounds)) {
+            this.sfxVolumes[key] = this.sfxVolumes[key] + .1 <= this.sfxMaxVolumes[key] ? this.sfxVolumes[key] + .1 : this.sfxMaxVolumes[key];
+            this.sfxSounds[key].volume = this.sfxVolumes[key];
+        }
+    }
+
+    static volumeDown() {
+        for (const key of Object.keys(this.sfxSounds)) {
+            this.sfxVolumes[key] = this.sfxVolumes[key] - .1 >= 0 ? this.sfxVolumes[key] - .1 : 0;
+            this.sfxSounds[key].volume = this.sfxVolumes[key];
+        }
     }
 }
     
