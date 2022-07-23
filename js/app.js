@@ -339,8 +339,13 @@ class Brick extends DestructableRect {
         super.update();
 
         if (hit) {
-            this.curColor = (this.curColor - 1) % Brick.colors.length;
+            this.curColor = (this.curColor - 1 < 0) ? Brick.colors.length - 1 : this.curColor - 1;
             this.setColor( Brick.colors[this.curColor] ); 
+
+            //check to spawn power-up
+            if (Math.random() < game.powerUpRate) {
+                PowerUp.spawnPowerUp(this);
+            }
 
             if (this.isDestroyed()) {
                 // audioElems[6].currentTime = 0;
@@ -417,6 +422,123 @@ class Alien extends DestructableRect {
             myImage.src = this.image;
             vp.ctx.drawImage(myImage, this.ulCorner.x, this.ulCorner.y, this.w, this.h);
         }
+    }
+}
+
+//=================================================================
+// PowerUp - base class for power-ups to inherit from extends DestructableRect
+//=================================================================
+class PowerUp extends DestructableRect {
+    vel = { x:0, y:.15 };
+    static availablePowerUps = [
+        'extraLife',
+        'multiBall',
+        // 'widePaddle',
+        // 'stunProof',
+        // 'heavyBall'
+    ]
+    constructor(rect) {
+        super(rect.getPosition().x, rect.getPosition().y, rect.getWidth(), rect.getHeight(), 1, 0)
+    }
+
+    static spawnPowerUp(rect) { 
+        // takes in rect to spawn new powerUp from
+        // creates a new random powerUp and pushes it to the game.powerUps array
+        const choice = Math.floor(Math.random() * this.availablePowerUps.length);
+        let newPu = null;
+        switch(this.availablePowerUps[choice]) {
+            case 'extraLife':
+                newPu = new ExtraLife(rect);
+                break;
+            case 'multiBall':
+                newPu = new MultiBall(rect);
+                break;
+            case 'widePaddle':
+                newPu = new WidePaddle(rect);
+                break;
+            case 'stunProof':
+                newPu = new StunProof(rect);
+                break;
+            case 'heavyBall':
+                newPu = new HeavyBall(rect);
+                break;
+        }
+        game.powerUps.push(newPu);
+    }
+
+    applyPowerUp() {} //overload in subclass to do the thing
+
+    update(dt) {
+        let newPos = { x: this.getPosition().x + this.vel.x * dt, y: this.getPosition().y + this.vel.y * dt };
+        this.setPosition(newPos.x, newPos.y);
+
+        //check for collision
+        const result = Collider.collide(this, game.paddle, false);
+        
+        if (result.hit) {
+            this.hitThisFrame = false;
+            this.destroyed = true;
+            //add pu effects
+            this.applyPowerUp();
+        }
+
+        if( newPos.y > vp.canvas.height + this.getHeight()) {   // bombs all fall at the samee speed, so if off the field, remove first bomb
+            game.powerUps.shift();
+        }
+    }
+}
+
+//=================================================================
+// ExtraLife - extends PowerUp - grants extra ball to game
+//=================================================================
+class ExtraLife extends PowerUp{
+    constructor(rect) {
+        super(rect);
+        this.setColor('#bb2');
+    }
+    applyPowerUp() {
+        game.lives++;
+    }
+}
+
+//=================================================================
+// MultiBall - extends PowerUp - spawns another ball immediately
+//=================================================================
+class MultiBall extends PowerUp{
+    constructor(rect) {
+        super(rect);
+        this.setColor('#aaa');
+    }
+
+    applyPowerUp() {
+        game.spawnBall();
+    }
+}
+
+//=================================================================
+// WidePaddle - extends PowerUp - lengthens the paddle for 30s
+//=================================================================
+class WidePaddle extends PowerUp{
+    constructor(rect) {
+        super(rect);
+    }
+}
+
+//=================================================================
+// StunProof - extends PowerUp - immune to stun bomb for 30s
+//=================================================================
+class StunProof extends PowerUp{
+    constructor(rect) {
+        super(rect);
+    }
+}
+
+//=================================================================
+// HeavyBall - extends PowerUp - ball hits for 1 additional damage for 30s
+//=================================================================
+class HeavyBall extends PowerUp{
+    constructor(rect) {
+        super(rect);
     }
 }
 
@@ -502,12 +624,14 @@ class Collider {
         const result = { hit: false, newPosOffset:{x: 0, y:0}, newVel:{x:0, y:0}};
         if (obj1 instanceof Circle && obj2 instanceof Rect)     Collider.colCirclRect(obj1, obj2, result, resolve);
         if (obj1 instanceof Rect && obj2 instanceof Circle)     Collider.colCirclRect(obj2, obj1, result, resolve);
-
-
+        if (obj1 instanceof Rect && obj2 instanceof Rect)       Collider.colRectRect(obj2, obj1, result, false);
+        
         return result;
     }
 
     static colCirclRect(circle, rectangle, result, resolve=false) {
+        // collision detection of a circle and an axis aligned rectangle this method does allow for resolution of the position and
+        // velocity of the circle only. 
         if (rectangle instanceof DestructableRect) {
             if (rectangle.isDestroyed()) {
                 return;
@@ -581,8 +705,32 @@ class Collider {
     }
 
     static colRectRect(rect1, rect2, result, resolve = false) {
-        // collision detection between two rectangles
+        // collision detection between two rectangles for the scope of this game I am not allowing resolution of this type
+        // also this method only works for axis aligned rectangles
 
+        if (rect1 instanceof DestructableRect) {
+            if (rect1.isDestroyed()) {
+                return;
+            }
+        }
+
+        if (rect2 instanceof DestructableRect) {
+            if (rect2.isDestroyed()) {
+                return;
+            }
+        }
+
+        const r1Min   = rect1.getUpperLeft();
+        const r1Max   = rect1.getLowerRight();
+        const r2Min   = rect2.getUpperLeft();
+        const r2Max   = rect2.getLowerRight();
+
+        if( (r1Min.x < r2Max.x) && (r1Max.x > r2Min.x) &&
+            (r1Min.y < r2Max.y) && (r1Max.y > r2Min.y) ) {
+            //collision
+            result.hit = true;    
+        }   // otherwise result.hit is already false
+        return;
     }
 }
 
@@ -699,6 +847,8 @@ class Game {
     aliens = [];
     bombs = [];
     scores = [];
+    powerUps = [];
+    powerUpRate = .05; 
     currentScore = null;
     paddle = null;
     bgColor = '#222';
@@ -735,6 +885,7 @@ class Game {
     getControlKeys() { return this.controlKeys; }
     getScore() { return this.score; }
     setScore(amount) { this.score += amount; }
+    spawnBall() { this.balls.push(new Ball(10)); }
 
     init() {
         vp.canvas = document.querySelector('#viewport');
@@ -754,17 +905,17 @@ class Game {
         this.score = 0;
         this.lives = 3;
         this.currentScore = null;
+        this.powerUps = [];
 
         this.loadPersistScores();
 
-        while (this.balls.length > 0)
-            this.balls.pop();
+        this.balls = [];
         this.paddle = null;
         
         this.loadLevel();
 
-        this.balls.push(new Ball(10));
-        this.paddle = new Paddle(vp.canvas.width / 2, vp.canvas.height - 20, 120, 20);   
+        this.spawnBall();
+        this.paddle = new Paddle(vp.canvas.width / 2, vp.canvas.height - 20, vp.canvas.width / 4.2, 20);   
     }
 
     loadPersistScores() {
@@ -794,10 +945,8 @@ class Game {
         const col = gutterWidth + brickWidth/2;
 
         //clear any level objects from the arrays
-        while (this.bricks.length > 0)
-            this.bricks.pop();
-        while (this.aliens.length > 0)
-            this.aliens.pop();
+        this.bricks = [];
+        this.aliens = [];
             
         //create new bricks
         for (let i=0; i<4; i++) {
@@ -855,11 +1004,10 @@ class Game {
                 }
 
                 if (numActiveBalls === 0){
-                    while (this.balls.length > 0)
-                        this.balls.pop();
+                    this.balls = [];
                     this.lives--;
                     if (this.lives > 0) {
-                        this.balls.push(new Ball(10));
+                        this.spawnBall();
                     } else {
                         // game over
                         if((this.scores.length < 10) || (this.score > this.scores[this.scores.length-1].getScore())) {
@@ -897,6 +1045,10 @@ class Game {
                 for (const bomb of this.bombs) {
                     bomb.update(dt);
                 }
+
+                for (const powerUp of this.powerUps) {
+                    powerUp.update(dt);                    
+                }
             }
         }
     }
@@ -932,6 +1084,9 @@ class Game {
             }
             for (const ball of this.balls) {
                 ball.draw();
+            }
+            for (const powerUp of this.powerUps) {
+                powerUp.draw();
             }
             this.paddle.draw();
         }
