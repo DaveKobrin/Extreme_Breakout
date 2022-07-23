@@ -494,6 +494,7 @@ class PowerUp extends DestructableRect {
 class ExtraLife extends PowerUp{
     constructor(rect) {
         super(rect);
+        this.setColor('#bb2');
     }
     applyPowerUp() {
         game.lives++;
@@ -506,12 +507,11 @@ class ExtraLife extends PowerUp{
 class MultiBall extends PowerUp{
     constructor(rect) {
         super(rect);
-        this.setColor('#d55');
+        this.setColor('#aaa');
     }
 
     applyPowerUp() {
         game.spawnBall();
-        this.setColor('#55d');
     }
 }
 
@@ -848,7 +848,7 @@ class Game {
     bombs = [];
     scores = [];
     powerUps = [];
-    powerUpRate = .5 //.005 // 1 in 200 for starters
+    powerUpRate = .05; 
     currentScore = null;
     paddle = null;
     bgColor = '#222';
