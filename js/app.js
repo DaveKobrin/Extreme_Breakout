@@ -755,6 +755,8 @@ class Game {
         this.lives = 3;
         this.currentScore = null;
 
+        this.loadPersistScores();
+
         while (this.balls.length > 0)
             this.balls.pop();
         this.paddle = null;
@@ -765,6 +767,23 @@ class Game {
         this.paddle = new Paddle(vp.canvas.width / 2, vp.canvas.height - 20, 120, 20);   
     }
 
+    loadPersistScores() {
+        if (!localStorage.getItem('scoreBoard')) {
+            this.scores = [];
+        } else {
+            this.scores = [];
+            const tmp = JSON.parse(localStorage.getItem('scoreBoard'));
+            for (const el of tmp){
+                this.scores.push(new Score(el.name, el.points));
+            }
+        }
+    }
+
+    persistScores() {
+        localStorage.setItem('scoreBoard', JSON.stringify(this.scores));
+        console.log(localStorage.getItem('scoreBoard'));
+    }
+    
     loadLevel() {
         const rowPad = 6;
         const colPad = 6;
@@ -849,6 +868,7 @@ class Game {
                             this.scores.push(this.currentScore);
                             this.scores.sort((a,b)=>{ return b.points - a.points });
                             if (this.scores.length > 10) this.scores.pop();
+                            this.persistScores();
                         } else {
                             alert('GAME OVER! \n Why not try again?');
                         }
@@ -948,14 +968,6 @@ class Game {
         this.controlKeys[e.code] = false;
     }
 
-}
-
-//=================================================================
-// Sound - holds a sound asset
-//=================================================================
-class Sound {
-    fileName = '';
-    soundID = '';
 }
 
 //=================================================================

@@ -18,3 +18,17 @@
         brickBreak:   "./assets/sounds/RetroFootStep03.wav",
         alienDeath:   "./assets/sounds/RetroImpactMetal36.wav",
         powerUp:      "./assets/sounds/RetroWeaponReloadPlasma06.wav"
+
+
+
+        power-ups to include...
+        - extra life (permanant until used)
+        - wider paddle (30s)
+        - multi-ball (until missed bounce)
+        - stonger hit (30s)
+        - stun immunity (30s)
+
+        power-ups
+        - will drop at .2*dt
+        - will inherit size from brick
+        - will activate immediately on pick up
