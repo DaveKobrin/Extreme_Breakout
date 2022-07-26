@@ -3,6 +3,7 @@
 //
 //      By: David Kobrin
 //          david_kobrin@yahoo.com
+//          7/2022
 //==============================================================
 
 
@@ -90,7 +91,6 @@ class Ball extends Circle {
     isActive() { return this.active; }
 
     update(dt) {
-        const keys = game.getControlKeys();
         if(!this.active)
             return;
 
@@ -101,7 +101,7 @@ class Ball extends Circle {
             newPos.y = game.paddle.getPosition().y - game.paddle.getHalfSize().y - this.rad;
             this.vel.x = game.paddle.getAveVel();
             this.vel.y = 0;
-            if (keys.Space) {
+            if (InputManager.getControlKeyDown('Space')) {
                 this.vel.y = -(this.maxVelY);
                 this.sticky = false;
             }
@@ -118,8 +118,6 @@ class Ball extends Circle {
             newPos.y += colRes.newPosOffset.y;
             if (colRes.hit) { //paddle hit
                 this.vel = colRes.newVel;
-                // audioElems[0].currentTime = 0;
-                // audioElems[0].play();
                 SfxManager.play('ballRebound');
             }
 
@@ -138,27 +136,17 @@ class Ball extends Circle {
                 newPos.y += colRes.newPosOffset.y;
                 if (colRes.hit) {
                     this.vel = colRes.newVel;
-                    // audioElems[8].currentTime = 0;
-                    // audioElems[8].play();
                     SfxManager.play('alienDeath');
                 }
             }
-
-            // newPos = this.hitRect(newPos, game.paddle);
-            // for (const brick of game.bricks) {
-            //     newPos = this.hitRect(newPos, brick);
-            // }
-            // for (const alien of game.aliens) {
-            //     newPos = this.hitRect(newPos, alien);
-            // }
         }
-// console.log(`update ball vel ${this.vel.x}, ${this.vel.y}`)
+
         this.setPosition(newPos.x, newPos.y);
 
         if (newPos.y > vp.canvas.height + this.rad) {
-            //life lost
+            //ball lost
             this.active = false;
-            console.log('life lost');
+            // console.log('ball lost');
         }
     }
 
@@ -180,8 +168,6 @@ class Ball extends Circle {
             hit = true;
         }
         if (hit){ //play sfx
-            // audioElems[0].currentTime = 0;
-            // audioElems[0].play();
             SfxManager.play('ballRebound');
         }
 
@@ -561,17 +547,19 @@ class Paddle extends Rect {
     getAveVel() { return this.averageVel; }
 
     update(dt) {
-        const keys = game.getControlKeys();
+        // const keys = game.getControlKeys();
         let curVel = 0;
 
         if(!this.stunned) {
-            if (keys.ArrowLeft) {
-                curVel -= this.maxVel; 
+            if (InputManager.getControlKeyDown('ArrowLeft') || InputManager.getDragLeft()) {
+                curVel = InputManager.getDragLeft() ? InputManager.getDragAmt() : -this.maxVel; 
+                // console.log('left curVel ',curVel);
                 let newX = this.getPosition().x + curVel * dt;
                 newX = newX > this.getHalfSize().x ? newX : this.getHalfSize().x;
                 this.setPosition(newX);
-            } else if (keys.ArrowRight) {
-                curVel += this.maxVel;
+            } else if (InputManager.getControlKeyDown('ArrowRight') || InputManager.getDragRight()) {
+                curVel = InputManager.getDragRight() ? InputManager.getDragAmt() : this.maxVel;
+                // console.log('right curVel ',curVel);
                 let newX = this.getPosition().x + curVel * dt;
                 newX = newX < vp.canvas.width - this.getHalfSize().x ? newX : vp.canvas.width - this.getHalfSize().x;
                 this.setPosition(newX);
@@ -858,14 +846,14 @@ class Game {
     lives = 3;
     gameState = null;
 
-    controlKeys = {
-            ArrowRight: false,
-            ArrowLeft:  false,
-            Space:      false,
-            KeyP:       false,
-            KeyI:       false,
-            KeyQ:       false
-    };
+    // controlKeys = {
+    //         ArrowRight: false,
+    //         ArrowLeft:  false,
+    //         Space:      false,
+    //         KeyP:       false,
+    //         KeyI:       false,
+    //         KeyQ:       false
+    // };
 
     constructor () {
         this.bricks = [];
@@ -882,7 +870,7 @@ class Game {
         //     this.scores.push(new Score('testing', 0));
     }
 
-    getControlKeys() { return this.controlKeys; }
+    // getControlKeys() { return this.controlKeys; }
     getScore() { return this.score; }
     setScore(amount) { this.score += amount; }
     spawnBall() { this.balls.push(new Ball(10)); }
@@ -891,14 +879,11 @@ class Game {
         vp.canvas = document.querySelector('#viewport');
         vp.ctx = vp.canvas.getContext('2d');
 
-        document.querySelector('body').addEventListener('keydown', (e) => { game.keyDownEvent(e); });
-        document.querySelector('body').addEventListener('keyup', (e) => { game.keyUpEvent(e); });
-
         shouldQuit = false;
         paused = true;
         this.lastUpdateTime = Date.now();
 
-        for (const key of Object.keys(this.controlKeys)) { this.controlKeys[key] = false; }
+        InputManager.clearControlKeys();
 
         this.gameState.setState('instructions');
         this.level = 1;
@@ -961,33 +946,34 @@ class Game {
 
     update(dt) { 
         if (this.gameState.isInstructions()) {
-            if (this.controlKeys.KeyI || this.controlKeys.KeyP) {
-                this.controlKeys.KeyI = false;
-                this.controlKeys.KeyP = false;
+            if ( InputManager.getControlKeyDown('KeyI') || InputManager.getControlKeyDown('KeyP') ) {
+                InputManager.setControlKeyDown('KeyI', false);
+                InputManager.setControlKeyDown('KeyP', false);
                 this.gameState.setState('gamePlay');
                 paused = false;
             }
         } else if (this.gameState.isHighScores()) {
-            if (this.controlKeys.KeyP) {
-                this.controlKeys.KeyP = false;
+            if (InputManager.getControlKeyDown('KeyP')) {
+                InputManager.setControlKeyDown('KeyP', false);
                 this.gameState.setState('gamePlay');
                 this.init();
                 paused = false;
                 shouldQuit = false;
             }
         } else {
-            if (this.controlKeys.KeyI) {
+            if (InputManager.getControlKeyDown('KeyI')) {
                 paused = true;
-                this.controlKeys.KeyI = false;
+                InputManager.setControlKeyDown('KeyI', false);
                 this.gameState.setState('instructions');
             }
-            if (this.controlKeys.KeyQ) {
+            if (InputManager.getControlKeyDown('KeyQ')) {
+                InputManager.setControlKeyDown('KeyQ', false);
                 shouldQuit = true;
                 paused = true;
                 this.gameState.setState('highScores');
             }
-            if (this.controlKeys.KeyP) {
-                this.controlKeys.KeyP = false;
+            if (InputManager.getControlKeyDown('KeyP')) {
+                InputManager.setControlKeyDown('KeyP', false);
                 paused = !paused;
             }
 
@@ -1103,25 +1089,25 @@ class Game {
         requestAnimationFrame(game.loop);    // keep game loop running while on page
     }
 
-    keyDownEvent(e) {
-//         if (e.code === 'KeyS')    testAudio(0);
-//         if (e.code === 'KeyA')    testAudio(-1);
-//         if (e.code === 'KeyD')    testAudio(1);
-// console.log(e.code);
+//     keyDownEvent(e) {
+// //         if (e.code === 'KeyS')    testAudio(0);
+// //         if (e.code === 'KeyA')    testAudio(-1);
+// //         if (e.code === 'KeyD')    testAudio(1);
+// // console.log(e.code);
 
-        if (e.code === 'ArrowUp')   SfxManager.volumeUp();
-        if (e.code === 'ArrowDown') SfxManager.volumeDown();
+//         if (e.code === 'ArrowUp')   SfxManager.volumeUp();
+//         if (e.code === 'ArrowDown') SfxManager.volumeDown();
 
-        if(!Object.keys(this.controlKeys).includes(e.code))
-            return;
-        this.controlKeys[e.code] = true;
-    }
+//         if(!Object.keys(this.controlKeys).includes(e.code))
+//             return;
+//         this.controlKeys[e.code] = true;
+//     }
 
-    keyUpEvent(e) {
-        if(!Object.keys(this.controlKeys).includes(e.code))
-            return;
-        this.controlKeys[e.code] = false;
-    }
+//     keyUpEvent(e) {
+//         if(!Object.keys(this.controlKeys).includes(e.code))
+//             return;
+//         this.controlKeys[e.code] = false;
+//     }
 
 }
 
@@ -1197,7 +1183,126 @@ class SfxManager {
         }
     }
 }
-    
+
+//=================================================================
+// InputManager - manage playing audio sfx
+//=================================================================
+class InputManager {
+    static controlKeys = {
+        ArrowRight: false,
+        ArrowLeft:  false,
+        Space:      false,
+        KeyP:       false,
+        KeyI:       false,
+        KeyQ:       false
+    };
+
+    static mouseState = {
+        buttons: { left: false, middle: false, right: false },
+        dragging: false,
+        dragStart: { x: 0, y: 0 },
+        dragLeft: false,
+        dragRight: false,
+        dragAmt: 0
+    };
+
+    static getControlKeys() { return InputManager.controlKeys; }
+    static getControlKeyDown(key) { return InputManager.controlKeys[key]; }
+    static setControlKeyDown(key, value) { InputManager.controlKeys[key] = value; }
+
+    static getDragLeft() { return InputManager.mouseState.dragLeft; }
+    static getDragRight() { return InputManager.mouseState.dragRight; }
+    static getDragAmt() { return InputManager.mouseState.dragAmt; }
+
+    static clearControlKeys() {
+        for (const key of Object.keys(InputManager.controlKeys)) {
+            this.controlKeys[key] = false;
+        }
+    }
+
+    static keyDownEvent(e) {   
+        if (e.code === 'ArrowUp')   SfxManager.volumeUp();
+        if (e.code === 'ArrowDown') SfxManager.volumeDown();
+
+        if(!Object.keys(this.controlKeys).includes(e.code))
+            return;
+        this.controlKeys[e.code] = true;
+    }
+        
+    static keyUpEvent(e) {
+        if(!Object.keys(this.controlKeys).includes(e.code))
+            return;
+        this.controlKeys[e.code] = false;
+    }
+
+    static mousedownEvent(e) {
+        // console.log('mousedown ', e);
+        switch (e.which) {
+            case 1:
+                this.mouseState.buttons.left = true;
+                break;
+            case 2:
+                this.mouseState.buttons.middle = true;
+                break;
+            case 3:
+                this.mouseState.buttons.right = true;
+                break;
+        }
+    }
+
+    static mousemoveEvent(e) {
+        // console.log('mousemove ', e);
+        if (!this.mouseState.dragging) {
+            if ( this.mouseState.buttons.left || this.mouseState.buttons.middle || this.mouseState.buttons.right) {
+                this.mouseState.dragging = true;
+                this.mouseState.dragStart.x = e.clientX;
+                this.mouseState.dragStart.y = e.clientY;
+            }
+        } else {
+            if ( e.clientX < this.mouseState.dragStart.x - 10 ) { //register dragging left
+                this.mouseState.dragLeft = true;
+                this.mouseState.dragRight = false;
+                this.mouseState.dragAmt = (e.clientX - this.mouseState.dragStart.x) / 100;
+                if ( this.mouseState.dragAmt < -.5 ) 
+                    this.mouseState.dragAmt = -.5;
+            } else if (e.clientX > this.mouseState.dragStart.x + 10 ) { //register dragging right
+                this.mouseState.dragLeft = false;
+                this.mouseState.dragRight = true;
+                this.mouseState.dragAmt = (e.clientX - this.mouseState.dragStart.x) / 100;
+                if ( this.mouseState.dragAmt > .5 ) 
+                    this.mouseState.dragAmt = .5;
+            } else {    // hold steady
+                this.mouseState.dragLeft = false;
+                this.mouseState.dragRight = false;
+                this.mouseState.dragAmt = 0;
+            }
+        }
+
+    }
+
+    static mouseupEvent(e) {
+        // console.log('mouseup ', e);
+        switch (e.which){
+            case 1:
+                this.mouseState.buttons.left = false;
+                break;
+            case 2:
+                this.mouseState.buttons.middle = false;
+                this.controlKeys['KeyP'] = !this.controlKeys['KeyP']; //  pause/resume game
+                break;
+            case 3:
+                this.mouseState.buttons.right = false;
+                break;
+        }
+        if ( !this.mouseState.buttons.left && !this.mouseState.buttons.middle && !this.mouseState.buttons.right) {
+            this.mouseState.dragging = false;
+            this.mouseState.dragLeft = false;
+            this.mouseState.dragRight = false;
+            this.mouseState.dragAmt = 0;
+        }
+    }
+}
+
 const testAudio = (step) => {
 
 }
@@ -1209,6 +1314,22 @@ const vp = {}
 let shouldQuit = false;
 let paused = false;
 const game = new Game();
+
+//-----------------------------------------------------------------
+//event listeners
+//-----------------------------------------------------------------
+const domBody = document.querySelector('body');
+const domVP = document.querySelector('#viewport');
+domBody.addEventListener('keydown', (e) => { InputManager.keyDownEvent(e); });
+domBody.addEventListener('keyup', (e) => { InputManager.keyUpEvent(e); });
+domBody.addEventListener('mouseup', (e) => {    // in case user stops dragging outside of the canvas
+                            let evt = new MouseEvent("mouseup", { bubbles: false, cancelable: true, view: window });
+                            domVP.dispatchEvent(evt);
+                        });
+domVP.addEventListener('mousedown', (e) => { InputManager.mousedownEvent(e); });
+domVP.addEventListener('mousemove', (e) => { InputManager.mousemoveEvent(e); });
+domVP.addEventListener('mouseup', (e) => { InputManager.mouseupEvent(e); });
+
 
 //-----------------------------------------------------------------
 //start game
