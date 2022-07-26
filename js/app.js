@@ -250,9 +250,9 @@ class DestructableRect extends Rect {
 
     update() {
         if (this.hitThisFrame) {
-            this.health--;
+            this.health -= game.getBallDamage();
             this.hitThisFrame = false;
-            game.setScore(this.points);
+            game.setScore(this.points * game.getBallDamage());
             if(this.health <= 0)
                 this.destroyed = true;
         }
@@ -325,7 +325,10 @@ class Brick extends DestructableRect {
         super.update();
 
         if (hit) {
-            this.curColor = (this.curColor - 1 < 0) ? Brick.colors.length - 1 : this.curColor - 1;
+            for (let i = 0; i < game.getBallDamage(); i++){
+                this.curColor = (this.curColor - 1 < 0) ? Brick.colors.length - 1 : this.curColor - 1;
+            }
+
             this.setColor( Brick.colors[this.curColor] ); 
 
             //check to spawn power-up
@@ -419,9 +422,9 @@ class PowerUp extends DestructableRect {
     static availablePowerUps = [
         'extraLife',
         'multiBall',
-        // 'widePaddle',
-        // 'stunProof',
-        // 'heavyBall'
+        'widePaddle',
+        'stunProof',
+        'heavyBall'
     ]
     constructor(rect) {
         super(rect.getPosition().x, rect.getPosition().y, rect.getWidth(), rect.getHeight(), 1, 0)
@@ -466,6 +469,7 @@ class PowerUp extends DestructableRect {
             this.destroyed = true;
             //add pu effects
             this.applyPowerUp();
+            SfxManager.play('powerUp');
         }
 
         if( newPos.y > vp.canvas.height + this.getHeight()) {   // bombs all fall at the samee speed, so if off the field, remove first bomb
@@ -507,6 +511,12 @@ class MultiBall extends PowerUp{
 class WidePaddle extends PowerUp{
     constructor(rect) {
         super(rect);
+        this.setColor('#ff0');
+    }
+    
+    applyPowerUp() {
+        game.setNewPowerUpInfo('widePaddle', 30);
+        game.paddle.setWidth(game.paddle.getWidth() * 1.3);     // increase paddle width 30%
     }
 }
 
@@ -516,6 +526,12 @@ class WidePaddle extends PowerUp{
 class StunProof extends PowerUp{
     constructor(rect) {
         super(rect);
+        this.setColor('#292');
+    }
+    
+    applyPowerUp() {
+        game.setNewPowerUpInfo('stunProof', 30);
+        game.paddle.setStunProof(true);
     }
 }
 
@@ -525,6 +541,12 @@ class StunProof extends PowerUp{
 class HeavyBall extends PowerUp{
     constructor(rect) {
         super(rect);
+        this.setColor('#fff');
+    }
+
+    applyPowerUp() {
+        game.setNewPowerUpInfo('heavyBall', 30);
+        game.setBallDamage(2);
     }
 }
 
@@ -538,6 +560,7 @@ class Paddle extends Rect {
     vels = [];
     stunned = false;
     stunTimeoutID = null;
+    stunProof = false;
 
     constructor(posX = 0, posY = 0, width = 0, height = 0, color = '#dd1') {
         super(posX, posY, width, height, color);
@@ -545,6 +568,19 @@ class Paddle extends Rect {
     }
 
     getAveVel() { return this.averageVel; }
+
+    setStunProof(value) { this.stunProof = value; }
+
+    setWidth(width) {
+        this.w = width;
+        if (this.pos.x + this.getHalfSize().x > vp.canvas.width) {
+            this.setPosition(vp.canvas.width - this.getHalfSize().x);
+        } else if (this.pos.x - this.getHalfSize().x < 0) {
+            this.setPosition(this.getHalfSize().x);
+        } else {
+            this.adjustCorners();
+        }
+    }
 
     update(dt) {
         // const keys = game.getControlKeys();
@@ -571,15 +607,16 @@ class Paddle extends Rect {
             this.vels.shift();
         this.averageVel = this.vels.reduce((acc, el) => acc + el)/this.vels.length;
 
-        //check collisions with bombs and power-ups
-        for (const bomb of game.bombs) {
-            let hit = Collider.collide( this, bomb, false).hit;
-            if (hit) {
-                this.hitBomb();
-                break;  // exit early additional hits would not change anything
+        if (!this.stunProof) {
+            //check collisions with bombs skip if immune
+            for (const bomb of game.bombs) {
+                let hit = Collider.collide( this, bomb, false).hit;
+                if (hit) {
+                    this.hitBomb();
+                    break;  // exit early additional hits would not change anything
+                }
             }
         }
-
     }
 
     hitBomb() {
@@ -836,7 +873,11 @@ class Game {
     bombs = [];
     scores = [];
     powerUps = [];
+    powerUpInfo = { widePaddle: false, widePaddleTime: 0,
+                    stunProof:  false, stunProofTime: 0,
+                    heavyBall:  false, heavyBallTime: 0 }
     powerUpRate = .05; 
+    ballDamage = 1;
     currentScore = null;
     paddle = null;
     bgColor = '#222';
@@ -846,14 +887,7 @@ class Game {
     lives = 3;
     gameState = null;
 
-    // controlKeys = {
-    //         ArrowRight: false,
-    //         ArrowLeft:  false,
-    //         Space:      false,
-    //         KeyP:       false,
-    //         KeyI:       false,
-    //         KeyQ:       false
-    // };
+
 
     constructor () {
         this.bricks = [];
@@ -865,15 +899,31 @@ class Game {
         this.score = 0;
         this.lives = 3;
         this.gameState = new GameState();
-
-        // for ( let i=0; i<10; i++)
-        //     this.scores.push(new Score('testing', 0));
     }
 
-    // getControlKeys() { return this.controlKeys; }
+    getBallDamage() { return this.ballDamage; }
     getScore() { return this.score; }
     setScore(amount) { this.score += amount; }
+    setBallDamage(damage) { this.ballDamage = damage; }
+
     spawnBall() { this.balls.push(new Ball(10)); }
+
+    setNewPowerUpInfo(item, time) {
+        switch (item) {
+            case 'widePaddle':
+                this.powerUpInfo.widePaddle = true;
+                this.powerUpInfo.widePaddleTime = time * 1000;
+                break;
+            case 'stunProof':
+                this.powerUpInfo.stunProof = true;
+                this.powerUpInfo.stunProofTime = time * 1000;
+                break;
+            case 'heavyBall':
+                this.powerUpInfo.heavyBall = true;
+                this.powerUpInfo.heavyBallTime = time * 1000;
+                break;
+        }
+    }
 
     init() {
         vp.canvas = document.querySelector('#viewport');
@@ -942,6 +992,32 @@ class Game {
 
         this.aliens.push(new Alien(vp.canvas.width/2, 50, 50, 50, 1, 100,(.001 * this.level), (.0001 * this.level)));
 
+    }
+
+    checkActivePowerUps(dt){
+        if (this.powerUpInfo.widePaddle) {
+            this.powerUpInfo.widePaddleTime -= dt;
+            if (this.powerUpInfo.widePaddleTime <= 0) {
+                this.paddle.setWidth(this.paddle.normalWidth);
+                this.powerUpInfo.widePaddle = false;
+            }
+        }
+
+        if (this.powerUpInfo.stunProof) {
+            this.powerUpInfo.stunProofTime -= dt;
+            if (this.powerUpInfo.stunProofTime <= 0) {
+                this.paddle.setStunProof(false);
+                this.powerUpInfo.stunProof = false;
+            }
+        }
+
+        if (this.powerUpInfo.heavyBall) {
+            this.powerUpInfo.heavyBallTime -= dt;
+            if (this.powerUpInfo.heavyBallTime <= 0) {
+                this.setBallDamage(1);
+                this.powerUpInfo.heavyBall = false;
+            }
+        }
     }
 
     update(dt) { 
@@ -1035,6 +1111,8 @@ class Game {
                 for (const powerUp of this.powerUps) {
                     powerUp.update(dt);                    
                 }
+
+                this.checkActivePowerUps(dt);
             }
         }
     }
@@ -1088,27 +1166,6 @@ class Game {
         
         requestAnimationFrame(game.loop);    // keep game loop running while on page
     }
-
-//     keyDownEvent(e) {
-// //         if (e.code === 'KeyS')    testAudio(0);
-// //         if (e.code === 'KeyA')    testAudio(-1);
-// //         if (e.code === 'KeyD')    testAudio(1);
-// // console.log(e.code);
-
-//         if (e.code === 'ArrowUp')   SfxManager.volumeUp();
-//         if (e.code === 'ArrowDown') SfxManager.volumeDown();
-
-//         if(!Object.keys(this.controlKeys).includes(e.code))
-//             return;
-//         this.controlKeys[e.code] = true;
-//     }
-
-//     keyUpEvent(e) {
-//         if(!Object.keys(this.controlKeys).includes(e.code))
-//             return;
-//         this.controlKeys[e.code] = false;
-//     }
-
 }
 
 //=================================================================
